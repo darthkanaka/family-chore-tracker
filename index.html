@@ -1,1 +1,1740 @@
-<!DOCTYPE html><html lang="en"><head>  <meta charset="UTF-8">  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>Family Chore Tracker</title>  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>  <script src="https://cdn.tailwindcss.com"></script></head><body>  <div id="root"></div>  <script type="text/babel">    const { useState, useMemo } = React;    const CheckCircle = ({ className, size = 24 }) => (      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>        <polyline points="22 4 12 14.01 9 11.01"></polyline>      </svg>    );    const Calendar = ({ className, size = 24 }) => (      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>        <line x1="16" y1="2" x2="16" y2="6"></line>        <line x1="8" y1="2" x2="8" y2="6"></line>        <line x1="3" y1="10" x2="21" y2="10"></line>      </svg>    );    const TrendingUp = ({ className, size = 24 }) => (      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>        <polyline points="17 6 23 6 23 12"></polyline>      </svg>    );    const Edit2 = ({ className, size = 24 }) => (      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>      </svg>    );    const X = ({ className, size = 24 }) => (      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">        <line x1="18" y1="6" x2="6" y2="18"></line>        <line x1="6" y1="6" x2="18" y2="18"></line>      </svg>    );    const Settings = ({ className, size = 24 }) => (      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">        <circle cx="12" cy="12" r="3"></circle>        <path d="M12 1v6m0 6v6m6-12.001v-.001m-12 0v-.001m15.364 2.637l-.707.707m-12.02 0l-.707-.707m13.434 12.728l-.707-.707m-12.02 0l-.707.707M1 12h6m6 0h6"></path>      </svg>    );    const ChoreTracker = () => {      const [currentView, setCurrentView] = useState('upcoming');      const [changeLog, setChangeLog] = useState([]);      const [editingFrequency, setEditingFrequency] = useState(null);      const [newFrequency, setNewFrequency] = useState('');      const [showConfirmation, setShowConfirmation] = useState(false);      const [confirmationData, setConfirmationData] = useState(null);      const [lastCompletedChore, setLastCompletedChore] = useState(null);      const [animatingChoreId, setAnimatingChoreId] = useState(null);      const [expandedChoreId, setExpandedChoreId] = useState(null);      const [editingConfirmationDate, setEditingConfirmationDate] = useState(false);      const [confirmationEditDate, setConfirmationEditDate] = useState('');      const [newChoreName, setNewChoreName] = useState('');      const [newChoreFrequency, setNewChoreFrequency] = useState('7');      const [newChoreAssignedTo, setNewChoreAssignedTo] = useState('Kawika');      const [editingChoreName, setEditingChoreName] = useState(null);      const [editedChoreName, setEditedChoreName] = useState('');      const [showManageChores, setShowManageChores] = useState(false);      const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);      const [choreToDelete, setChoreToDelete] = useState(null);      const [currentMonth, setCurrentMonth] = useState(new Date());      const [selectedDate, setSelectedDate] = useState(new Date());      const [editingCompletedDate, setEditingCompletedDate] = useState('');      const [editingCompletedBy, setEditingCompletedBy] = useState('');      const [editingUpcomingDate, setEditingUpcomingDate] = useState('');      const [expandedCalendarChoreId, setExpandedCalendarChoreId] = useState(null);      const getHawaiiDate = () => {        const now = new Date();        const hawaiiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Pacific/Honolulu' }));        return hawaiiTime;      };      const createHawaiiDate = (dateString) => {        const [year, month, day] = dateString.split('-').map(Number);        const date = new Date(Date.UTC(year, month - 1, day, 22, 0, 0));        return date;      };      const formatDateToInput = (date) => {        const hawaiiDateStr = date.toLocaleString('en-US', {          timeZone: 'Pacific/Honolulu',          year: 'numeric',          month: '2-digit',          day: '2-digit'        });        const [month, day, year] = hawaiiDateStr.split('/');        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;      };      const [chores, setChores] = useState([        { id: 1, name: 'Cleaning the toilets', frequency: 3, assignedTo: 'Kawika', lastCompleted: new Date('2025-09-28T22:00:00Z'), completedBy: 'Kawika' },        { id: 2, name: 'Cleaning the sinks', frequency: 3, assignedTo: 'Jordyn', lastCompleted: new Date('2025-09-27T22:00:00Z'), completedBy: 'Jordyn' },        { id: 3, name: 'Cleaning the dishwasher', frequency: 7, assignedTo: 'Kawika', lastCompleted: new Date('2025-09-25T22:00:00Z'), completedBy: 'Kawika' },        { id: 4, name: 'Vacuuming the hardwood floors', frequency: 7, assignedTo: 'Jordyn', lastCompleted: new Date('2025-09-24T22:00:00Z'), completedBy: 'Jordyn' },        { id: 5, name: 'Mopping the hardwood floors', frequency: 7, assignedTo: 'Kawika', lastCompleted: new Date('2025-09-24T22:00:00Z'), completedBy: 'Kawika' },        { id: 6, name: 'Scrubbing the bath tubs', frequency: 7, assignedTo: 'Jordyn', lastCompleted: new Date('2025-09-23T22:00:00Z'), completedBy: 'Jordyn' },        { id: 7, name: 'Washing the bed sheets', frequency: 14, assignedTo: 'Kawika', lastCompleted: new Date('2025-09-20T22:00:00Z'), completedBy: 'Kawika' },        { id: 8, name: 'Vacuuming the carpets', frequency: 7, assignedTo: 'Jordyn', lastCompleted: new Date('2025-09-26T22:00:00Z'), completedBy: 'Jordyn' },        { id: 9, name: 'Taking out the trash', frequency: 2, assignedTo: 'Kawika', lastCompleted: new Date('2025-09-29T22:00:00Z'), completedBy: 'Kawika' },        { id: 10, name: 'Emptying the cans', frequency: 7, assignedTo: 'Jordyn', lastCompleted: new Date('2025-09-25T22:00:00Z'), completedBy: 'Jordyn' }      ]);      const [completionHistory, setCompletionHistory] = useState([]);      const calculateNextDue = (lastCompleted, frequency) => {        const next = new Date(lastCompleted);        next.setDate(next.getDate() + frequency);        return next;      };      const getDaysUntilDue = (nextDue) => {        const today = getHawaiiDate();        today.setHours(0, 0, 0, 0);        const due = new Date(nextDue);        due.setHours(0, 0, 0, 0);        const diffTime = due - today;        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));        return diffDays;      };      const formatDate = (date) => {        return new Date(date).toLocaleDateString('en-US', {          month: 'short',          day: 'numeric',          year: 'numeric',          timeZone: 'Pacific/Honolulu'        });      };      const markAsComplete = (choreId, completedBy) => {        const today = getHawaiiDate();        const completedChore = chores.find(c => c.id === choreId);        const previousLastCompleted = completedChore.lastCompleted;        const previousCompletedBy = completedChore.completedBy;        const nextDue = calculateNextDue(today, completedChore.frequency);        setChores(prevChores =>          prevChores.map(chore =>            chore.id === choreId              ? { ...chore, lastCompleted: today, completedBy }              : chore          )        );        const historyEntry = {          id: Date.now(),          choreId,          choreName: completedChore.name,          completedDate: today,          completedBy        };        setCompletionHistory(prev => [...prev, historyEntry]);        const logEntry = {          id: Date.now() + 1,          action: 'completed',          choreName: completedChore.name,          person: completedBy,          timestamp: today,          details: `Marked "${completedChore.name}" as completed`        };        setChangeLog(prev => [logEntry, ...prev]);        setLastCompletedChore({          choreId,          previousLastCompleted,          previousCompletedBy,          historyEntryId: historyEntry.id,          logEntryId: logEntry.id        });        setConfirmationData({          choreName: completedChore.name,          completedDate: today,          completedBy: completedBy,          nextDue: nextDue,          choreId: choreId        });        setShowConfirmation(true);      };      const undoCompletion = () => {        if (lastCompletedChore) {          setChores(prevChores =>            prevChores.map(chore =>              chore.id === lastCompletedChore.choreId                ? {                    ...chore,                    lastCompleted: lastCompletedChore.previousLastCompleted,                    completedBy: lastCompletedChore.previousCompletedBy                  }                : chore            )          );          setCompletionHistory(prev =>            prev.filter(h => h.id !== lastCompletedChore.historyEntryId)          );          setChangeLog(prev =>            prev.filter(l => l.id !== lastCompletedChore.logEntryId)          );          const completedChore = chores.find(c => c.id === lastCompletedChore.choreId);          setChangeLog(prev => [            {              id: Date.now(),              action: 'edited',              choreName: completedChore.name,              person: 'System',              timestamp: getHawaiiDate(),              details: `Undid completion of "${completedChore.name}"`            },            ...prev          ]);          setLastCompletedChore(null);          setShowConfirmation(false);        }      };      const addNewChore = () => {        if (newChoreName.trim()) {          const newChore = {            id: Date.now(),            name: newChoreName.trim(),            frequency: parseInt(newChoreFrequency),            assignedTo: newChoreAssignedTo,            lastCompleted: getHawaiiDate(),            completedBy: newChoreAssignedTo          };          setChores(prev => [...prev, newChore]);          setChangeLog(prev => [            {              id: Date.now(),              action: 'edited',              choreName: newChore.name,              person: 'System',              timestamp: getHawaiiDate(),              details: `Added new chore "${newChore.name}"`            },            ...prev          ]);          setNewChoreName('');          setNewChoreFrequency('7');          setNewChoreAssignedTo('Kawika');        }      };      const startEditChoreName = (chore) => {        setEditingChoreName(chore.id);        setEditedChoreName(chore.name);      };      const saveEditChoreName = (choreId) => {        if (editedChoreName.trim()) {          const oldName = chores.find(c => c.id === choreId).name;          setChores(prevChores =>            prevChores.map(chore =>              chore.id === choreId                ? { ...chore, name: editedChoreName.trim() }                : chore            )          );          setChangeLog(prev => [            {              id: Date.now(),              action: 'edited',              choreName: editedChoreName.trim(),              person: 'System',              timestamp: getHawaiiDate(),              details: `Renamed chore from "${oldName}" to "${editedChoreName.trim()}"`            },            ...prev          ]);          setEditingChoreName(null);          setEditedChoreName('');        }      };      const cancelEditChoreName = () => {        setEditingChoreName(null);        setEditedChoreName('');      };      const startDeleteChore = (chore) => {        setChoreToDelete(chore);        setShowDeleteConfirm(true);      };      const confirmDeleteChore = () => {        if (choreToDelete) {          setChores(prevChores => prevChores.filter(c => c.id !== choreToDelete.id));          setCompletionHistory(prev => prev.filter(h => h.choreId !== choreToDelete.id));          setChangeLog(prev => [            {              id: Date.now(),              action: 'edited',              choreName: choreToDelete.name,              person: 'System',              timestamp: getHawaiiDate(),              details: `Deleted chore "${choreToDelete.name}"`            },            ...prev          ]);          setShowDeleteConfirm(false);          setChoreToDelete(null);        }      };      const cancelDeleteChore = () => {        setShowDeleteConfirm(false);        setChoreToDelete(null);      };      const saveFrequency = (choreId) => {        const freq = parseInt(newFrequency);        if (freq && freq > 0 && freq <= 365) {          const chore = chores.find(c => c.id === choreId);          const oldFreq = chore.frequency;          setAnimatingChoreId(choreId);          setTimeout(() => {            setChores(prevChores =>              prevChores.map(chore =>                chore.id === choreId                  ? { ...chore, frequency: freq }                  : chore              )            );            setChangeLog(prev => [              {                id: Date.now(),                action: 'edited',                choreName: chore.name,                person: 'System',                timestamp: new Date(),                details: `Updated frequency from every ${oldFreq} days to every ${freq} days`              },              ...prev            ]);            cancelEditFrequency();            setTimeout(() => {              setAnimatingChoreId(null);            }, 500);          }, 100);        }      };      const startEditFrequency = (chore) => {        setEditingFrequency(chore.id);        setNewFrequency(chore.frequency.toString());      };      const cancelEditFrequency = () => {        setEditingFrequency(null);        setNewFrequency('');      };      const toggleChoreExpand = (choreId) => {        setExpandedChoreId(expandedChoreId === choreId ? null : choreId);      };      const upcomingChores = useMemo(() => {        return chores          .map(chore => ({            ...chore,            nextDue: calculateNextDue(chore.lastCompleted, chore.frequency),            daysUntil: getDaysUntilDue(calculateNextDue(chore.lastCompleted, chore.frequency))          }))          .sort((a, b) => a.daysUntil - b.daysUntil);      }, [chores]);      const getStatusColor = (daysUntil) => {        if (daysUntil < 0) return 'text-red-600';        if (daysUntil === 0) return 'text-orange-600';        if (daysUntil <= 2) return 'text-yellow-600';        return 'text-teal-600';      };      const getStatusText = (daysUntil) => {        if (daysUntil < 0) return `${Math.abs(daysUntil)} days overdue`;        if (daysUntil === 0) return 'Due today';        if (daysUntil === 1) return 'Due tomorrow';        return `Due in ${daysUntil} days`;      };      const getWeeklyStats = () => {        const weekAgo = new Date();        weekAgo.setDate(weekAgo.getDate() - 7);        const weeklyCompletions = completionHistory.filter(          h => new Date(h.completedDate) >= weekAgo        );        const byPerson = weeklyCompletions.reduce((acc, curr) => {          acc[curr.completedBy] = (acc[curr.completedBy] || 0) + 1;          return acc;        }, {});        return { total: weeklyCompletions.length, byPerson, completions: weeklyCompletions };      };      const getMonthlyStats = () => {        const monthAgo = new Date();        monthAgo.setDate(monthAgo.getDate() - 30);        const monthlyCompletions = completionHistory.filter(          h => new Date(h.completedDate) >= monthAgo        );        const byPerson = monthlyCompletions.reduce((acc, curr) => {          acc[curr.completedBy] = (acc[curr.completedBy] || 0) + 1;          return acc;        }, {});        return { total: monthlyCompletions.length, byPerson, completions: monthlyCompletions };      };      const weeklyStats = getWeeklyStats();      const monthlyStats = getMonthlyStats();      const getDaysInMonth = (date) => {        const year = date.getFullYear();        const month = date.getMonth();        const firstDay = new Date(year, month, 1);        const lastDay = new Date(year, month + 1, 0);        const daysInMonth = lastDay.getDate();        const startingDayOfWeek = firstDay.getDay();        return { daysInMonth, startingDayOfWeek, year, month };      };      const getChoresForDate = (date) => {        const dateStr = date.toDateString();        const completed = completionHistory.filter(completion => {          return new Date(completion.completedDate).toDateString() === dateStr;        }).map(completion => ({          ...chores.find(c => c.id === completion.choreId),          type: 'completed',          completedBy: completion.completedBy,          completedDate: completion.completedDate,          completionId: completion.id        }));        const upcoming = upcomingChores.filter(chore => {          return new Date(chore.nextDue).toDateString() === dateStr;        }).map(chore => ({          ...chore,          type: 'upcoming'        }));        return { completed, upcoming };      };      const isToday = (date) => {        const today = getHawaiiDate();        return date.toDateString() === today.toDateString();      };      const isSameDay = (date1, date2) => {        return date1.toDateString() === date2.toDateString();      };      const changeMonth = (direction) => {        setCurrentMonth(prev => {          const newDate = new Date(prev);          newDate.setMonth(prev.getMonth() + direction);          return newDate;        });      };      return (        <div className="min-h-screen bg-gray-50">          {showDeleteConfirm && choreToDelete && (            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full mx-2 p-4 sm:p-6 relative">                <div className="text-center mb-3">                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">                    <X className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />                  </div>                  <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1.5">Delete Chore?</h2>                  <p className="text-gray-600">Do you want to delete this chore?</p>                </div>                <div className="bg-gray-50 rounded-xl p-4 mb-4">                  <div className="text-sm text-gray-500 mb-1">Chore</div>                  <div className="text-lg font-semibold text-gray-800 mb-2">{choreToDelete.name}</div>                  <div className="text-sm text-gray-600">Every {choreToDelete.frequency} days • {choreToDelete.assignedTo}</div>                </div>                <p className="text-sm text-red-600 font-medium mb-4 text-center bg-red-50 p-2.5 rounded-lg">                  ⚠️ This action cannot be undone                </p>                <div className="flex gap-2">                  <button                    onClick={cancelDeleteChore}                    className="flex-1 bg-gray-200 text-gray-700 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-gray-300 transition"                  >                    Go Back                  </button>                  <button                    onClick={confirmDeleteChore}                    className="flex-1 bg-red-500 text-white py-2.5 sm:py-3 rounded-xl font-medium hover:bg-red-600 transition"                  >                    Delete                  </button>                </div>              </div>            </div>          )}          {showConfirmation && confirmationData && (            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full mx-2 p-4 sm:p-6 relative">                <button                  onClick={() => setShowConfirmation(false)}                  className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"                >                  <X size={24} />                </button>                <div className="text-center mb-3">                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-3">                    <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 text-teal-600" />                  </div>                  <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1.5">Chore Completed!</h2>                </div>                <div className="space-y-3 bg-gray-50 rounded-xl p-3 sm:p-4">                  <div>                    <div className="text-sm text-gray-500 mb-1">Chore</div>                    <div className="text-lg font-semibold text-gray-800">{confirmationData.choreName}</div>                  </div>                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2.5">                    <div>                      <div className="text-sm text-gray-500 mb-1">Completed by</div>                      <div className="font-medium text-gray-800">{confirmationData.completedBy}</div>                    </div>                    <div>                      <div className="text-sm text-gray-500 mb-1">Completed on</div>                      {editingConfirmationDate ? (                        <div className="space-y-2">                          <input                            type="date"                            value={confirmationEditDate}                            onChange={(e) => setConfirmationEditDate(e.target.value)}                            className="w-full px-2 py-1 text-sm border-2 border-teal-400 rounded-lg focus:outline-none focus:border-teal-500"                            autoFocus                          />                          <div className="flex gap-2">                            <button                              onClick={() => {                                const newDate = createHawaiiDate(confirmationEditDate);                                setConfirmationData(prev => ({                                  ...prev,                                  completedDate: newDate,                                  nextDue: calculateNextDue(newDate, chores.find(c => c.id === prev.choreId).frequency)                                }));                                setEditingConfirmationDate(false);                              }}                              className="flex-1 bg-teal-500 text-white py-1 rounded-lg text-xs font-medium hover:bg-teal-600 transition"                            >                              Save                            </button>                            <button                              onClick={() => {                                setEditingConfirmationDate(false);                                setConfirmationEditDate('');                              }}                              className="flex-1 bg-gray-300 text-gray-700 py-1 rounded-lg text-xs font-medium hover:bg-gray-400 transition"                            >                              Cancel                            </button>                          </div>                        </div>                      ) : (                        <div                          onClick={() => {                            setEditingConfirmationDate(true);                            setConfirmationEditDate(formatDateToInput(confirmationData.completedDate));                          }}                          className="font-medium text-gray-800 cursor-pointer hover:text-teal-600 transition flex items-center gap-2"                        >                          {formatDate(confirmationData.completedDate)}                          <Edit2 className="w-4 h-4 text-gray-400" />                        </div>                      )}                    </div>                  </div>                  <div className="pt-4 border-t border-gray-200">                    <div className="text-sm text-gray-500 mb-1">Next due date</div>                    <div className="text-lg font-semibold text-teal-600">{formatDate(confirmationData.nextDue)}</div>                  </div>                </div>                <button                  onClick={() => {                    const finalDate = confirmationData.completedDate;                    setChores(prevChores =>                      prevChores.map(chore =>                        chore.id === confirmationData.choreId                          ? { ...chore, lastCompleted: finalDate }                          : chore                      )                    );                    setCompletionHistory(prev =>                      prev.map(h =>                        h.choreId === confirmationData.choreId &&                         h.id === lastCompletedChore?.historyEntryId                          ? { ...h, completedDate: finalDate }                          : h                      )                    );                    setShowConfirmation(false);                    setEditingConfirmationDate(false);                    setConfirmationEditDate('');                  }}                  className="w-full mt-4 bg-teal-500 text-white py-2.5 rounded-xl font-medium hover:bg-teal-600 transition"                >                  Confirm                </button>                <button                  onClick={undoCompletion}                  className="w-full mt-2 bg-white border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-medium hover:bg-gray-50 transition"                >                  Go Back                </button>              </div>            </div>          )}          <div className="sm:max-w-6xl sm:mx-auto w-full px-2 sm:px-4">            <div className="flex justify-between items-center mb-2 sm:mb-4 gap-2">              <div className="text-lg sm:text-xl font-bold text-gray-800">Family Chore Tracker</div>              <button                onClick={() => setShowManageChores(true)}                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-white border-2 border-gray-200 rounded-lg sm:rounded-xl text-gray-700 text-xs sm:text-sm font-medium hover:border-teal-400 hover:text-teal-600 transition"              >                <Settings size={18} />                Manage Chores              </button>            </div>            {showManageChores && (              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full m-2 sm:m-4 max-h-[90vh] flex flex-col relative">                  <button                    onClick={() => setShowManageChores(false)}                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition z-10"                  >                    <X size={24} />                  </button>                  <div className="p-3 sm:p-5 pb-2 flex-shrink-0">                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">Manage Chores</h2>                    <p className="text-sm text-gray-600">Add new chores, edit names, and adjust frequencies</p>                  </div>                  <div className="flex-1 overflow-y-auto px-3 sm:px-5 min-h-0">                    <div className="mb-3 p-3 bg-teal-50 rounded-xl border-2 border-teal-200">                      <h3 className="font-semibold text-gray-800 mb-2 text-sm">Add New Chore</h3>                      <div className="space-y-2">                        <input                          type="text"                          value={newChoreName}                          onChange={(e) => setNewChoreName(e.target.value)}                          onKeyDown={(e) => e.key === 'Enter' && addNewChore()}                          className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-400"                          placeholder="Chore name"                        />                        <div className="grid grid-cols-2 gap-2">                          <input                            type="number"                            value={newChoreFrequency}                            onChange={(e) => setNewChoreFrequency(e.target.value)}                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-400"                            placeholder="Days"                            min="1"                            max="365"                          />                          <select                            value={newChoreAssignedTo}                            onChange={(e) => setNewChoreAssignedTo(e.target.value)}                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-400"                          >                            <option value="Kawika">Kawika</option>                            <option value="Jordyn">Jordyn</option>                          </select>                        </div>                        <button                          onClick={addNewChore}                          className="w-full bg-teal-500 text-white py-2 rounded-xl text-sm font-medium hover:bg-teal-600 transition"                        >                          Add Chore                        </button>                      </div>                    </div>                    <div className="mb-4">                      <h3 className="font-semibold text-gray-800 mb-2 text-sm">Existing Chores</h3>                      <div className="space-y-2">                        {chores.map((chore) => (                          <div key={chore.id} className="p-2.5 bg-gray-50 rounded-lg border-2 border-gray-200">                            {editingChoreName === chore.id ? (                              <div className="space-y-2">                                <input                                  type="text"                                  value={editedChoreName}                                  onChange={(e) => setEditedChoreName(e.target.value)}                                  onKeyDown={(e) => {                                    if (e.key === 'Enter') {                                      saveEditChoreName(chore.id);                                    } else if (e.key === 'Escape') {                                      cancelEditChoreName();                                    }                                  }}                                  className="w-full px-3 py-2 text-sm border-2 border-teal-400 rounded-lg focus:outline-none focus:border-teal-500"                                  autoFocus                                />                                <div className="flex gap-2">                                  <button                                    onClick={() => saveEditChoreName(chore.id)}                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"                                  >                                    Save                                  </button>                                  <button                                    onClick={cancelEditChoreName}                                    className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"                                  >                                    Cancel                                  </button>                                </div>                              </div>                            ) : editingFrequency === chore.id ? (                              <div className="space-y-2">                                <div className="flex items-center gap-2 text-sm">                                  <span className="text-gray-700">{chore.name} - Every</span>                                  <input                                    type="number"                                    value={newFrequency}                                    onChange={(e) => setNewFrequency(e.target.value)}                                    onKeyDown={(e) => {                                      if (e.key === 'Enter') {                                        saveFrequency(chore.id);                                      } else if (e.key === 'Escape') {                                        cancelEditFrequency();                                      }                                    }}                                    className="w-16 px-2 py-1 text-sm border-2 border-teal-400 rounded-lg text-center focus:outline-none focus:border-teal-500"                                    min="1"                                    max="365"                                    autoFocus                                  />                                  <span className="text-gray-700">days</span>                                </div>                                <div className="flex gap-2">                                  <button                                    onClick={() => saveFrequency(chore.id)}                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"                                  >                                    Save                                  </button>                                  <button                                    onClick={cancelEditFrequency}                                    className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"                                  >                                    Cancel                                  </button>                                </div>                              </div>                            ) : (                              <div className="space-y-2">                                <div className="flex justify-between items-center gap-2">                                  <div className="flex-1 min-w-0">                                    <div className="font-medium text-gray-800 text-sm truncate">{chore.name}</div>                                    <div className="text-xs text-gray-500">Every {chore.frequency} days • {chore.assignedTo}</div>                                  </div>                                  <button                                    onClick={() => startDeleteChore(chore)}                                    className="px-2 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-xs font-medium flex-shrink-0"                                  >                                    Delete                                  </button>                                </div>                                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2 pt-2 border-t border-gray-200">                                  <button                                    onClick={() => startEditChoreName(chore)}                                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-xs font-medium"                                  >                                    Edit Name                                  </button>                                  <button                                    onClick={() => startEditFrequency(chore)}                                    className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-xs font-medium"                                  >                                    Edit Frequency                                  </button>                                </div>                              </div>                            )}                          </div>                        ))}                      </div>                    </div>                  </div>                  <div className="p-3 sm:p-5 pt-2 border-t border-gray-200 flex-shrink-0">                    <button                      onClick={() => setShowManageChores(false)}                      className="w-full bg-gray-200 text-gray-700 py-2.5 rounded-xl font-medium hover:bg-gray-300 transition"                    >                      Done                    </button>                  </div>                </div>              </div>            )}            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 sm:mb-4">              <button                onClick={() => setCurrentView('upcoming')}                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${                  currentView === 'upcoming'                    ? 'bg-teal-500 text-white shadow-lg'                    : 'bg-white text-gray-600 hover:shadow-md'                }`}              >                <CheckCircle className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />                <div className="font-medium text-sm sm:text-base">Chores</div>              </button>              <button                onClick={() => setCurrentView('dashboard')}                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${                  currentView === 'dashboard'                    ? 'bg-teal-500 text-white shadow-lg'                    : 'bg-white text-gray-600 hover:shadow-md'                }`}              >                <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />                <div className="font-medium text-sm sm:text-base">Dashboard</div>              </button>              <button                onClick={() => setCurrentView('calendar')}                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${                  currentView === 'calendar'                    ? 'bg-teal-500 text-white shadow-lg'                    : 'bg-white text-gray-600 hover:shadow-md'                }`}              >                <Calendar className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />                <div className="font-medium text-sm sm:text-base">Calendar</div>              </button>              <button                onClick={() => setCurrentView('changelog')}                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${                  currentView === 'changelog'                    ? 'bg-teal-500 text-white shadow-lg'                    : 'bg-white text-gray-600 hover:shadow-md'                }`}              >                <Edit2 className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />                <div className="font-medium text-sm sm:text-base">Change Log</div>              </button>            </div>            {currentView === 'changelog' && (              <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">                <div className="text-xl sm:text-2xl font-medium text-gray-800 mb-3 sm:mb-4">Change Log</div>                {changeLog.length === 0 ? (                  <div className="text-center py-8 sm:py-10">                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />                    <p className="text-gray-400 text-lg">No activity yet</p>                    <p className="text-gray-400 text-sm mt-2">Actions will appear here as you use the app</p>                  </div>                ) : (                  <div className="space-y-2">                    {changeLog.map((log) => (                      <div                        key={log.id}                        className="p-4 bg-gray-50 rounded-xl border-2 border-transparent hover:border-teal-200 transition-all"                      >                        <div className="flex items-start justify-between mb-2">                          <div className="flex items-center gap-3">                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${                              log.action === 'completed' ? 'bg-teal-100' : 'bg-blue-100'                            }`}>                              {log.action === 'completed' ? (                                <CheckCircle className="w-5 h-5 text-teal-600" />                              ) : (                                <Edit2 className="w-5 h-5 text-blue-600" />                              )}                            </div>                            <div>                              <div className="font-medium text-gray-800">{log.details}</div>                              <div className="text-sm text-gray-500 mt-1">By {log.person}</div>                            </div>                          </div>                          <div className="text-xs text-gray-400">                            {new Date(log.timestamp).toLocaleString('en-US', {                              month: 'short',                              day: 'numeric',                              hour: 'numeric',                              minute: '2-digit',                              hour12: true                            })}                          </div>                        </div>                      </div>                    ))}                  </div>                )}              </div>            )}            {currentView === 'dashboard' && (              <div className="space-y-4">                <div className="flex flex-col sm:grid sm:grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">                  <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-transparent hover:border-teal-400 transition-all">                    <div className="text-sm text-gray-500 mb-2">This Week</div>                    <div className="text-4xl font-bold text-teal-600 mb-4">{weeklyStats.total}</div>                    <div className="text-gray-600 mb-4">Chores completed</div>                    <div className="space-y-2 mb-4">                      {Object.entries(weeklyStats.byPerson).map(([person, count]) => (                        <div key={person} className="flex justify-between items-center">                          <span className="text-gray-700">{person}</span>                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">                            <div                              className="h-full bg-teal-500 rounded-full"                              style={{ width: `${(count / weeklyStats.total) * 100}%` }}                            />                          </div>                          <span className="text-teal-600 font-medium text-sm">{count}</span>                        </div>                      ))}                      {Object.keys(weeklyStats.byPerson).length === 0 && (                        <p className="text-gray-400 text-sm">No chores completed this week yet</p>                      )}                    </div>                  </div>                  <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-transparent hover:border-teal-400 transition-all">                    <div className="text-sm text-gray-500 mb-2">This Month</div>                    <div className="text-4xl font-bold text-teal-600 mb-4">{monthlyStats.total}</div>                    <div className="text-gray-600 mb-4">Chores completed</div>                    <div className="space-y-2 mb-4">                      {Object.entries(monthlyStats.byPerson).map(([person, count]) => (                        <div key={person} className="flex justify-between items-center">                          <span className="text-gray-700">{person}</span>                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">                            <div                              className="h-full bg-teal-500 rounded-full"                              style={{ width: `${(count / monthlyStats.total) * 100}%` }}                            />                          </div>                          <span className="text-teal-600 font-medium text-sm">{count}</span>                        </div>                      ))}                      {Object.keys(monthlyStats.byPerson).length === 0 && (                        <p className="text-gray-400 text-sm">No chores completed this month yet</p>                      )}                    </div>                  </div>                </div>                <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">                  <div className="text-lg font-medium text-gray-800 mb-4">Recent activity</div>                  <div className="space-y-3 max-h-96 overflow-y-auto">                    {completionHistory.slice().reverse().slice(0, 20).map(completion => (                      <div key={completion.id} className="flex justify-between items-center py-2">                        <div>                          <div className="font-medium text-gray-800">{completion.choreName}</div>                          <div className="text-sm text-gray-500">{completion.completedBy}</div>                        </div>                        <span className="text-sm text-gray-400">{formatDate(completion.completedDate)}</span>                      </div>                    ))}                    {completionHistory.length === 0 && (                      <p className="text-gray-400 text-center py-8">No completions recorded yet</p>                    )}                  </div>                </div>              </div>            )}            {currentView === 'upcoming' && (              <div className="space-y-2">                {upcomingChores.map((chore) => (                  <div                    key={chore.id}                    className={`bg-white rounded-none sm:rounded-xl shadow-sm border-2 border-transparent hover:border-teal-400 transition-all ${                      animatingChoreId === chore.id ? 'animate-pulse' : ''                    }`}                    style={{                      transition: 'all 0.5s ease-in-out',                      transform: animatingChoreId === chore.id ? 'scale(1.02)' : 'scale(1)'                    }}                  >                    <div                      onClick={() => toggleChoreExpand(chore.id)}                      className="p-3 cursor-pointer"                    >                      <div className="flex justify-between items-center">                        <div className="flex-1">                          <h3 className="font-semibold text-base sm:text-lg text-gray-800">{chore.name}</h3>                          <p className="text-sm text-gray-500 mt-1">{chore.assignedTo}</p>                        </div>                        <div className="text-right">                          <span className={`text-sm font-medium ${getStatusColor(chore.daysUntil)}`}>                            {getStatusText(chore.daysUntil)}                          </span>                          <p className="text-xs text-gray-400 mt-1">{formatDate(chore.nextDue)}</p>                        </div>                      </div>                    </div>                    {expandedChoreId === chore.id && (                      <div className="px-3 pb-3 pt-2 border-t border-gray-100">                        <div className="mb-3">                          <div className="text-sm mb-3 pt-3 border-t border-gray-100">                            <span className={`font-medium ${getStatusColor(chore.daysUntil)}`}>                              {getStatusText(chore.daysUntil)}                            </span>                            <span className="text-gray-400 ml-2">• Every {chore.frequency} days</span>                          </div>                          <div className="flex flex-col gap-2">                            <button                              onClick={() => markAsComplete(chore.id, 'Kawika')}                              className="bg-teal-500 text-white py-2 px-4 rounded-xl font-medium hover:bg-teal-600 transition text-sm"                            >                              Kawika completed                            </button>                            <button                              onClick={() => markAsComplete(chore.id, 'Jordyn')}                              className="bg-white border-2 border-teal-500 text-teal-600 py-2 px-4 rounded-xl font-medium hover:bg-teal-50 transition text-sm"                            >                              Jordyn completed                            </button>                          </div>                        </div>                      </div>                    )}                  </div>                ))}              </div>            )}            {currentView === 'calendar' && (              <div className="space-y-4">                <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">                  <div className="flex items-center justify-between mb-6">                    <button                      onClick={() => changeMonth(-1)}                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"                    >                      <span className="text-gray-600 text-xl">‹</span>                    </button>                    <div className="text-2xl font-medium text-gray-800">                      {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}                    </div>                    <button                      onClick={() => changeMonth(1)}                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"                    >                      <span className="text-gray-600 text-xl">›</span>                    </button>                  </div>                  <div className="grid grid-cols-7 gap-2 mb-4">                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (                      <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">                        {day}                      </div>                    ))}                  </div>                  <div className="grid grid-cols-7 gap-2">                    {(() => {                      const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);                      const days = [];                      for (let i = 0; i < startingDayOfWeek; i++) {                        days.push(<div key={`empty-${i}`} className="h-16" />);                      }                      for (let day = 1; day <= daysInMonth; day++) {                        const date = new Date(year, month, day);                        const { completed, upcoming } = getChoresForDate(date);                        const isTodayDate = isToday(date);                        const isSelected = isSameDay(date, selectedDate);                        days.push(                          <button                            key={day}                            onClick={() => setSelectedDate(date)}                            className={`h-20 md:h-16 p-2 rounded-xl border-2 transition-all relative ${                              isSelected                                ? 'border-teal-500 bg-teal-50'                                : isTodayDate                                ? 'border-teal-300 bg-teal-50'                                : completed.length > 0 || upcoming.length > 0                                ? 'border-gray-200 bg-gray-50 hover:border-gray-300'                                : 'border-gray-100 hover:border-gray-200'                            }`}                          >                            <div className={`text-sm font-medium absolute top-2 left-2 ${                              isTodayDate ? 'text-teal-600' : 'text-gray-700'                            }`}>                              {day}                            </div>                            <div className="absolute bottom-2 left-0 right-0 flex flex-col gap-1 items-center md:top-2 md:bottom-auto md:left-auto md:right-2 md:items-end">                              {completed.length > 0 && (                                <div className="flex items-center gap-1">                                  <div className="w-6 h-1 bg-green-400 rounded-full"></div>                                  <span className="text-xs text-green-700 font-medium leading-none">{completed.length}</span>                                </div>                              )}                              {upcoming.length > 0 && (                                <div className="flex items-center gap-1">                                  <div className="w-6 h-1 bg-orange-400 rounded-full"></div>                                  <span className="text-xs text-orange-700 font-medium leading-none">{upcoming.length}</span>                                </div>                              )}                            </div>                          </button>                        );                      }                      return days;                    })()}                  </div>                  <div className="mt-4 flex gap-4 text-xs">                    <div className="flex items-center gap-2">                      <div className="w-4 h-4 rounded border-2 border-teal-300 bg-teal-50" />                      <span className="text-gray-600">Today</span>                    </div>                    <div className="flex items-center gap-2">                      <div className="w-4 h-1 rounded bg-green-400" />                      <span className="text-gray-600">Completed</span>                    </div>                    <div className="flex items-center gap-2">                      <div className="w-4 h-1 rounded bg-orange-400" />                      <span className="text-gray-600">Due</span>                    </div>                  </div>                </div>                <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">                  <div className="flex items-center justify-between mb-6">                    <h2 className="text-2xl font-bold text-gray-800">                      {isToday(selectedDate) ? 'Today' : selectedDate.toLocaleDateString('en-US', {                         weekday: 'long',                         month: 'long',                         day: 'numeric',                        year: 'numeric'                      })}                    </h2>                    {!isToday(selectedDate) && (                      <button                        onClick={() => setSelectedDate(getHawaiiDate())}                        className="px-4 py-2 bg-teal-100 text-teal-700 rounded-xl text-sm font-medium hover:bg-teal-200 transition"                      >                        Go to Today                      </button>                    )}                  </div>                  {(() => {                    const { completed, upcoming } = getChoresForDate(selectedDate);                    if (completed.length === 0 && upcoming.length === 0) {                      return (                        <div className="text-center py-8 sm:py-10">                          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />                          <p className="text-gray-400 text-lg">No chores for this day</p>                        </div>                      );                    }                    return (                      <div className="space-y-6">                        {completed.length > 0 && (                          <div>                            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">                              <CheckCircle className="w-5 h-5 text-green-600" />                              Completed ({completed.length})                            </h3>                            <div className="space-y-2">                              {completed.map((chore, index) => {                                const choreKey = `completed-${chore.completionId}`;                                const isExpanded = expandedCalendarChoreId === choreKey;                                return (                                  <div                                    key={choreKey}                                    className="bg-green-50 border-2 border-green-200 rounded-xl overflow-hidden"                                  >                                    <div                                      onClick={() => setExpandedCalendarChoreId(isExpanded ? null : choreKey)}                                      className="p-4 cursor-pointer hover:bg-green-100 transition"                                    >                                      <div className="flex justify-between items-start">                                        <div className="flex-1">                                          <h4 className="font-semibold text-gray-800">{chore.name}</h4>                                          <p className="text-sm text-gray-600 mt-1">                                            Completed by {chore.completedBy}                                          </p>                                        </div>                                        <div className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full">                                          ✓ Done                                        </div>                                      </div>                                    </div>                                    {isExpanded && (                                      <div className="px-4 pb-4 pt-2 border-t border-green-200 space-y-3">                                        <div>                                          <label className="text-xs text-gray-600 block mb-1">Completed on</label>                                          <input                                            type="date"                                            value={editingCompletedDate || formatDateToInput(new Date(chore.completedDate))}                                            onChange={(e) => setEditingCompletedDate(e.target.value)}                                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-teal-400"                                          />                                        </div>                                        <div>                                          <label className="text-xs text-gray-600 block mb-1">Completed by</label>                                          <select                                            value={editingCompletedBy || chore.completedBy}                                            onChange={(e) => setEditingCompletedBy(e.target.value)}                                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-teal-400"                                          >                                            <option value="Kawika">Kawika</option>                                            <option value="Jordyn">Jordyn</option>                                          </select>                                        </div>                                        <button                                          onClick={() => {                                            const newDate = createHawaiiDate(editingCompletedDate || formatDateToInput(new Date(chore.completedDate)));                                            const newPerson = editingCompletedBy || chore.completedBy;                                            setCompletionHistory(prev =>                                              prev.map(h =>                                                h.id === chore.completionId                                                  ? { ...h, completedDate: newDate, completedBy: newPerson }                                                  : h                                              )                                            );                                            setChangeLog(prev => [                                              {                                                id: Date.now(),                                                action: 'edited',                                                choreName: chore.name,                                                person: 'System',                                                timestamp: getHawaiiDate(),                                                details: `Updated completion record for "${chore.name}"`                                              },                                              ...prev                                            ]);                                            setEditingCompletedDate('');                                            setEditingCompletedBy('');                                            setExpandedCalendarChoreId(null);                                          }}                                          className="w-full bg-teal-500 text-white py-2 rounded-xl font-medium hover:bg-teal-600 transition text-sm"                                        >                                          Update Completion                                        </button>                                      </div>                                    )}                                  </div>                                );                              })}                            </div>                          </div>                        )}                        {upcoming.length > 0 && (                          <div>                            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">                              <Calendar className="w-5 h-5 text-orange-600" />                              Due Today ({upcoming.length})                            </h3>                            <div className="space-y-2">                              {upcoming.map((chore) => {                                const choreKey = `upcoming-${chore.id}`;                                const isExpanded = expandedCalendarChoreId === choreKey;                                return (                                  <div                                    key={choreKey}                                    className="bg-orange-50 border-2 border-orange-200 rounded-xl overflow-hidden"                                  >                                    <div                                      onClick={() => setExpandedCalendarChoreId(isExpanded ? null : choreKey)}                                      className="p-4 cursor-pointer hover:bg-orange-100 transition"                                    >                                      <div className="flex justify-between items-start">                                        <div className="flex-1">                                          <h4 className="font-semibold text-gray-800">{chore.name}</h4>                                          <p className="text-sm text-gray-600 mt-1">                                            Assigned to {chore.assignedTo} • Every {chore.frequency} days                                          </p>                                          <p className={`text-sm font-medium mt-1 ${getStatusColor(chore.daysUntil)}`}>                                            {getStatusText(chore.daysUntil)}                                          </p>                                        </div>                                      </div>                                    </div>                                    {isExpanded && (                                      <div className="px-4 pb-4 pt-2 border-t border-orange-200 space-y-3">                                        <div>                                          <label className="text-xs text-gray-600 block mb-1">Reschedule due date</label>                                          <input                                            type="date"                                            value={editingUpcomingDate || formatDateToInput(chore.nextDue)}                                            onChange={(e) => setEditingUpcomingDate(e.target.value)}                                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-400"                                          />                                        </div>                                        <button                                          onClick={() => {                                            const newDueDate = createHawaiiDate(editingUpcomingDate || formatDateToInput(chore.nextDue));                                            const newLastCompleted = new Date(newDueDate);                                            newLastCompleted.setDate(newDueDate.getDate() - chore.frequency);                                            setChores(prevChores =>                                              prevChores.map(c =>                                                c.id === chore.id                                                  ? { ...c, lastCompleted: newLastCompleted }                                                  : c                                              )                                            );                                            setChangeLog(prev => [                                              {                                                id: Date.now(),                                                action: 'edited',                                                choreName: chore.name,                                                person: 'System',                                                timestamp: getHawaiiDate(),                                                details: `Rescheduled "${chore.name}" to be due on ${formatDate(newDueDate)}`                                              },                                              ...prev                                            ]);                                            setEditingUpcomingDate('');                                            setExpandedCalendarChoreId(null);                                          }}                                          className="w-full bg-orange-500 text-white py-2 rounded-xl font-medium hover:bg-orange-600 transition text-sm"                                        >                                          Update Due Date                                        </button>                                        {isToday(selectedDate) && (                                          <>                                            <div className="text-xs text-gray-500 text-center">or mark as complete</div>                                            <div className="grid grid-cols-2 gap-2">                                              <button                                                onClick={() => markAsComplete(chore.id, 'Kawika')}                                                className="bg-teal-500 text-white py-2 px-4 rounded-xl font-medium hover:bg-teal-600 transition text-sm"                                              >                                                Kawika completed                                              </button>                                              <button                                                onClick={() => markAsComplete(chore.id, 'Jordyn')}                                                className="bg-white border-2 border-teal-500 text-teal-600 py-2 px-4 rounded-xl font-medium hover:bg-teal-50 transition text-sm"                                              >                                                Jordyn completed                                              </button>                                            </div>                                          </>                                        )}                                      </div>                                    )}                                  </div>                                );                              })}                            </div>                          </div>                        )}                      </div>                    );                  })()}                </div>              </div>            )}          </div>        </div>      );    };    ReactDOM.render(<ChoreTracker />, document.getElementById('root'));  </script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Chore Tracker</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ============================================================================
+    // ICON COMPONENTS
+    // ============================================================================
+
+    const CheckCircle = ({ className, size = 24 }) => (
+      <svg
+        className={className}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+    );
+
+    const Calendar = ({ className, size = 24 }) => (
+      <svg
+        className={className}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+    );
+
+    const TrendingUp = ({ className, size = 24 }) => (
+      <svg
+        className={className}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+        <polyline points="17 6 23 6 23 12"></polyline>
+      </svg>
+    );
+
+    const Edit2 = ({ className, size = 24 }) => (
+      <svg
+        className={className}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+      </svg>
+    );
+
+    const X = ({ className, size = 24 }) => (
+      <svg
+        className={className}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    );
+
+    const Settings = ({ className, size = 24 }) => (
+      <svg
+        className={className}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M12 1v6m0 6v6m6-12.001v-.001m-12 0v-.001m15.364 2.637l-.707.707m-12.02 0l-.707-.707m13.434 12.728l-.707-.707m-12.02 0l-.707.707M1 12h6m6 0h6"></path>
+      </svg>
+    );
+
+    // ============================================================================
+    // MAIN APPLICATION
+    // ============================================================================
+
+    const ChoreTracker = () => {
+      // --------------------------------------------------------------------------
+      // STATE MANAGEMENT
+      // --------------------------------------------------------------------------
+
+      // View state
+      const [currentView, setCurrentView] = useState('upcoming');
+
+      // Chore data
+      const [chores, setChores] = useState([
+        {
+          id: 1,
+          name: 'Cleaning the toilets',
+          frequency: 3,
+          assignedTo: 'Kawika',
+          lastCompleted: new Date('2025-09-28T22:00:00Z'),
+          completedBy: 'Kawika'
+        },
+        {
+          id: 2,
+          name: 'Cleaning the sinks',
+          frequency: 3,
+          assignedTo: 'Jordyn',
+          lastCompleted: new Date('2025-09-27T22:00:00Z'),
+          completedBy: 'Jordyn'
+        },
+        {
+          id: 3,
+          name: 'Cleaning the dishwasher',
+          frequency: 7,
+          assignedTo: 'Kawika',
+          lastCompleted: new Date('2025-09-25T22:00:00Z'),
+          completedBy: 'Kawika'
+        },
+        {
+          id: 4,
+          name: 'Vacuuming the hardwood floors',
+          frequency: 7,
+          assignedTo: 'Jordyn',
+          lastCompleted: new Date('2025-09-24T22:00:00Z'),
+          completedBy: 'Jordyn'
+        },
+        {
+          id: 5,
+          name: 'Mopping the hardwood floors',
+          frequency: 7,
+          assignedTo: 'Kawika',
+          lastCompleted: new Date('2025-09-24T22:00:00Z'),
+          completedBy: 'Kawika'
+        },
+        {
+          id: 6,
+          name: 'Scrubbing the bath tubs',
+          frequency: 7,
+          assignedTo: 'Jordyn',
+          lastCompleted: new Date('2025-09-23T22:00:00Z'),
+          completedBy: 'Jordyn'
+        },
+        {
+          id: 7,
+          name: 'Washing the bed sheets',
+          frequency: 14,
+          assignedTo: 'Kawika',
+          lastCompleted: new Date('2025-09-20T22:00:00Z'),
+          completedBy: 'Kawika'
+        },
+        {
+          id: 8,
+          name: 'Vacuuming the carpets',
+          frequency: 7,
+          assignedTo: 'Jordyn',
+          lastCompleted: new Date('2025-09-26T22:00:00Z'),
+          completedBy: 'Jordyn'
+        },
+        {
+          id: 9,
+          name: 'Taking out the trash',
+          frequency: 2,
+          assignedTo: 'Kawika',
+          lastCompleted: new Date('2025-09-29T22:00:00Z'),
+          completedBy: 'Kawika'
+        },
+        {
+          id: 10,
+          name: 'Emptying the cans',
+          frequency: 7,
+          assignedTo: 'Jordyn',
+          lastCompleted: new Date('2025-09-25T22:00:00Z'),
+          completedBy: 'Jordyn'
+        }
+      ]);
+
+      // History tracking
+      const [completionHistory, setCompletionHistory] = useState([]);
+      const [changeLog, setChangeLog] = useState([]);
+      const [lastCompletedChore, setLastCompletedChore] = useState(null);
+
+      // UI state for chores view
+      const [expandedChoreId, setExpandedChoreId] = useState(null);
+      const [animatingChoreId, setAnimatingChoreId] = useState(null);
+
+      // Edit frequency state
+      const [editingFrequency, setEditingFrequency] = useState(null);
+      const [newFrequency, setNewFrequency] = useState('');
+
+      // Confirmation modal state
+      const [showConfirmation, setShowConfirmation] = useState(false);
+      const [confirmationData, setConfirmationData] = useState(null);
+      const [editingConfirmationDate, setEditingConfirmationDate] = useState(false);
+      const [confirmationEditDate, setConfirmationEditDate] = useState('');
+
+      // Manage chores modal state
+      const [showManageChores, setShowManageChores] = useState(false);
+      const [newChoreName, setNewChoreName] = useState('');
+      const [newChoreFrequency, setNewChoreFrequency] = useState('7');
+      const [newChoreAssignedTo, setNewChoreAssignedTo] = useState('Kawika');
+      const [editingChoreName, setEditingChoreName] = useState(null);
+      const [editedChoreName, setEditedChoreName] = useState('');
+
+      // Delete confirmation modal state
+      const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+      const [choreToDelete, setChoreToDelete] = useState(null);
+
+      // Calendar state
+      const [currentMonth, setCurrentMonth] = useState(new Date());
+      const [selectedDate, setSelectedDate] = useState(new Date());
+      const [expandedCalendarChoreId, setExpandedCalendarChoreId] = useState(null);
+      const [editingCompletedDate, setEditingCompletedDate] = useState('');
+      const [editingCompletedBy, setEditingCompletedBy] = useState('');
+      const [editingUpcomingDate, setEditingUpcomingDate] = useState('');
+
+      // --------------------------------------------------------------------------
+      // HAWAII TIMEZONE FUNCTIONS
+      // --------------------------------------------------------------------------
+
+      const getHawaiiDate = () => {
+        const now = new Date();
+        const hawaiiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Pacific/Honolulu' }));
+        return hawaiiTime;
+      };
+
+      const createHawaiiDate = (dateString) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day, 22, 0, 0));
+        return date;
+      };
+
+      const formatDateToInput = (date) => {
+        const hawaiiDateStr = date.toLocaleString('en-US', {
+          timeZone: 'Pacific/Honolulu',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const [month, day, year] = hawaiiDateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      };
+
+      const formatDate = (date) => {
+        return new Date(date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          timeZone: 'Pacific/Honolulu'
+        });
+      };
+
+      // --------------------------------------------------------------------------
+      // CHORE CALCULATIONS
+      // --------------------------------------------------------------------------
+
+      const calculateNextDue = (lastCompleted, frequency) => {
+        const next = new Date(lastCompleted);
+        next.setDate(next.getDate() + frequency);
+        return next;
+      };
+
+      const getDaysUntilDue = (nextDue) => {
+        const today = getHawaiiDate();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(nextDue);
+        due.setHours(0, 0, 0, 0);
+        const diffTime = due - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+      };
+
+      const getStatusColor = (daysUntil) => {
+        if (daysUntil < 0) return 'text-red-600';
+        if (daysUntil === 0) return 'text-orange-600';
+        if (daysUntil <= 2) return 'text-yellow-600';
+        return 'text-teal-600';
+      };
+
+      const getStatusText = (daysUntil) => {
+        if (daysUntil < 0) return `${Math.abs(daysUntil)} days overdue`;
+        if (daysUntil === 0) return 'Due today';
+        if (daysUntil === 1) return 'Due tomorrow';
+        return `Due in ${daysUntil} days`;
+      };
+
+      const upcomingChores = useMemo(() => {
+        return chores
+          .map(chore => ({
+            ...chore,
+            nextDue: calculateNextDue(chore.lastCompleted, chore.frequency),
+            daysUntil: getDaysUntilDue(calculateNextDue(chore.lastCompleted, chore.frequency))
+          }))
+          .sort((a, b) => a.daysUntil - b.daysUntil);
+      }, [chores]);
+
+      // --------------------------------------------------------------------------
+      // CHORE COMPLETION HANDLERS
+      // --------------------------------------------------------------------------
+
+      const markAsComplete = (choreId, completedBy) => {
+        const today = getHawaiiDate();
+        const completedChore = chores.find(c => c.id === choreId);
+        const previousLastCompleted = completedChore.lastCompleted;
+        const previousCompletedBy = completedChore.completedBy;
+        const nextDue = calculateNextDue(today, completedChore.frequency);
+
+        setChores(prevChores =>
+          prevChores.map(chore =>
+            chore.id === choreId
+              ? { ...chore, lastCompleted: today, completedBy }
+              : chore
+          )
+        );
+
+        const historyEntry = {
+          id: Date.now(),
+          choreId,
+          choreName: completedChore.name,
+          completedDate: today,
+          completedBy
+        };
+        setCompletionHistory(prev => [...prev, historyEntry]);
+
+        const logEntry = {
+          id: Date.now() + 1,
+          action: 'completed',
+          choreName: completedChore.name,
+          person: completedBy,
+          timestamp: today,
+          details: `Marked "${completedChore.name}" as completed`
+        };
+        setChangeLog(prev => [logEntry, ...prev]);
+
+        setLastCompletedChore({
+          choreId,
+          previousLastCompleted,
+          previousCompletedBy,
+          historyEntryId: historyEntry.id,
+          logEntryId: logEntry.id
+        });
+
+        setConfirmationData({
+          choreName: completedChore.name,
+          completedDate: today,
+          completedBy: completedBy,
+          nextDue: nextDue,
+          choreId: choreId
+        });
+
+        setShowConfirmation(true);
+      };
+
+      const undoCompletion = () => {
+        if (lastCompletedChore) {
+          setChores(prevChores =>
+            prevChores.map(chore =>
+              chore.id === lastCompletedChore.choreId
+                ? {
+                    ...chore,
+                    lastCompleted: lastCompletedChore.previousLastCompleted,
+                    completedBy: lastCompletedChore.previousCompletedBy
+                  }
+                : chore
+            )
+          );
+
+          setCompletionHistory(prev =>
+            prev.filter(h => h.id !== lastCompletedChore.historyEntryId)
+          );
+
+          setChangeLog(prev =>
+            prev.filter(l => l.id !== lastCompletedChore.logEntryId)
+          );
+
+          const completedChore = chores.find(c => c.id === lastCompletedChore.choreId);
+          setChangeLog(prev => [
+            {
+              id: Date.now(),
+              action: 'edited',
+              choreName: completedChore.name,
+              person: 'System',
+              timestamp: getHawaiiDate(),
+              details: `Undid completion of "${completedChore.name}"`
+            },
+            ...prev
+          ]);
+
+          setLastCompletedChore(null);
+          setShowConfirmation(false);
+        }
+      };
+
+      // --------------------------------------------------------------------------
+      // CHORE MANAGEMENT HANDLERS
+      // --------------------------------------------------------------------------
+
+      const addNewChore = () => {
+        if (newChoreName.trim()) {
+          const newChore = {
+            id: Date.now(),
+            name: newChoreName.trim(),
+            frequency: parseInt(newChoreFrequency),
+            assignedTo: newChoreAssignedTo,
+            lastCompleted: getHawaiiDate(),
+            completedBy: newChoreAssignedTo
+          };
+
+          setChores(prev => [...prev, newChore]);
+          setChangeLog(prev => [
+            {
+              id: Date.now(),
+              action: 'edited',
+              choreName: newChore.name,
+              person: 'System',
+              timestamp: getHawaiiDate(),
+              details: `Added new chore "${newChore.name}"`
+            },
+            ...prev
+          ]);
+
+          setNewChoreName('');
+          setNewChoreFrequency('7');
+          setNewChoreAssignedTo('Kawika');
+        }
+      };
+
+      const startEditChoreName = (chore) => {
+        setEditingChoreName(chore.id);
+        setEditedChoreName(chore.name);
+      };
+
+      const saveEditChoreName = (choreId) => {
+        if (editedChoreName.trim()) {
+          const oldName = chores.find(c => c.id === choreId).name;
+          setChores(prevChores =>
+            prevChores.map(chore =>
+              chore.id === choreId
+                ? { ...chore, name: editedChoreName.trim() }
+                : chore
+            )
+          );
+
+          setChangeLog(prev => [
+            {
+              id: Date.now(),
+              action: 'edited',
+              choreName: editedChoreName.trim(),
+              person: 'System',
+              timestamp: getHawaiiDate(),
+              details: `Renamed chore from "${oldName}" to "${editedChoreName.trim()}"`
+            },
+            ...prev
+          ]);
+
+          setEditingChoreName(null);
+          setEditedChoreName('');
+        }
+      };
+
+      const cancelEditChoreName = () => {
+        setEditingChoreName(null);
+        setEditedChoreName('');
+      };
+
+      const startDeleteChore = (chore) => {
+        setChoreToDelete(chore);
+        setShowDeleteConfirm(true);
+      };
+
+      const confirmDeleteChore = () => {
+        if (choreToDelete) {
+          setChores(prevChores => prevChores.filter(c => c.id !== choreToDelete.id));
+          setCompletionHistory(prev => prev.filter(h => h.choreId !== choreToDelete.id));
+          setChangeLog(prev => [
+            {
+              id: Date.now(),
+              action: 'edited',
+              choreName: choreToDelete.name,
+              person: 'System',
+              timestamp: getHawaiiDate(),
+              details: `Deleted chore "${choreToDelete.name}"`
+            },
+            ...prev
+          ]);
+
+          setShowDeleteConfirm(false);
+          setChoreToDelete(null);
+        }
+      };
+
+      const cancelDeleteChore = () => {
+        setShowDeleteConfirm(false);
+        setChoreToDelete(null);
+      };
+
+      const startEditFrequency = (chore) => {
+        setEditingFrequency(chore.id);
+        setNewFrequency(chore.frequency.toString());
+      };
+
+      const saveFrequency = (choreId) => {
+        const freq = parseInt(newFrequency);
+        if (freq && freq > 0 && freq <= 365) {
+          const chore = chores.find(c => c.id === choreId);
+          const oldFreq = chore.frequency;
+
+          setAnimatingChoreId(choreId);
+
+          setTimeout(() => {
+            setChores(prevChores =>
+              prevChores.map(chore =>
+                chore.id === choreId
+                  ? { ...chore, frequency: freq }
+                  : chore
+              )
+            );
+
+            setChangeLog(prev => [
+              {
+                id: Date.now(),
+                action: 'edited',
+                choreName: chore.name,
+                person: 'System',
+                timestamp: new Date(),
+                details: `Updated frequency from every ${oldFreq} days to every ${freq} days`
+              },
+              ...prev
+            ]);
+
+            cancelEditFrequency();
+
+            setTimeout(() => {
+              setAnimatingChoreId(null);
+            }, 500);
+          }, 100);
+        }
+      };
+
+      const cancelEditFrequency = () => {
+        setEditingFrequency(null);
+        setNewFrequency('');
+      };
+
+      const toggleChoreExpand = (choreId) => {
+        setExpandedChoreId(expandedChoreId === choreId ? null : choreId);
+      };
+
+      // --------------------------------------------------------------------------
+      // STATISTICS CALCULATIONS
+      // --------------------------------------------------------------------------
+
+      const getWeeklyStats = () => {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
+        const weeklyCompletions = completionHistory.filter(
+          h => new Date(h.completedDate) >= weekAgo
+        );
+
+        const byPerson = weeklyCompletions.reduce((acc, curr) => {
+          acc[curr.completedBy] = (acc[curr.completedBy] || 0) + 1;
+          return acc;
+        }, {});
+
+        return {
+          total: weeklyCompletions.length,
+          byPerson,
+          completions: weeklyCompletions
+        };
+      };
+
+      const getMonthlyStats = () => {
+        const monthAgo = new Date();
+        monthAgo.setDate(monthAgo.getDate() - 30);
+
+        const monthlyCompletions = completionHistory.filter(
+          h => new Date(h.completedDate) >= monthAgo
+        );
+
+        const byPerson = monthlyCompletions.reduce((acc, curr) => {
+          acc[curr.completedBy] = (acc[curr.completedBy] || 0) + 1;
+          return acc;
+        }, {});
+
+        return {
+          total: monthlyCompletions.length,
+          byPerson,
+          completions: monthlyCompletions
+        };
+      };
+
+      const weeklyStats = getWeeklyStats();
+      const monthlyStats = getMonthlyStats();
+
+      // --------------------------------------------------------------------------
+      // CALENDAR FUNCTIONS
+      // --------------------------------------------------------------------------
+
+      const getDaysInMonth = (date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+        return { daysInMonth, startingDayOfWeek, year, month };
+      };
+
+      const getChoresForDate = (date) => {
+        const dateStr = date.toDateString();
+
+        const completed = completionHistory.filter(completion => {
+          return new Date(completion.completedDate).toDateString() === dateStr;
+        }).map(completion => ({
+          ...chores.find(c => c.id === completion.choreId),
+          type: 'completed',
+          completedBy: completion.completedBy,
+          completedDate: completion.completedDate,
+          completionId: completion.id
+        }));
+
+        const upcoming = upcomingChores.filter(chore => {
+          return new Date(chore.nextDue).toDateString() === dateStr;
+        }).map(chore => ({
+          ...chore,
+          type: 'upcoming'
+        }));
+
+        return { completed, upcoming };
+      };
+
+      const isToday = (date) => {
+        const today = getHawaiiDate();
+        return date.toDateString() === today.toDateString();
+      };
+
+      const isSameDay = (date1, date2) => {
+        return date1.toDateString() === date2.toDateString();
+      };
+
+      const changeMonth = (direction) => {
+        setCurrentMonth(prev => {
+          const newDate = new Date(prev);
+          newDate.setMonth(prev.getMonth() + direction);
+          return newDate;
+        });
+      };
+
+      // --------------------------------------------------------------------------
+      // RENDER
+      // --------------------------------------------------------------------------
+
+      return (
+        <div className="min-h-screen bg-gray-50">
+          {/* DELETE CONFIRMATION MODAL */}
+          {showDeleteConfirm && choreToDelete && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+              style={{ zIndex: 9999 }}
+            >
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full mx-2 p-4 sm:p-6 relative">
+                <div className="text-center mb-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <X className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1.5">
+                    Delete Chore?
+                  </h2>
+                  <p className="text-gray-600">Do you want to delete this chore?</p>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                  <div className="text-sm text-gray-500 mb-1">Chore</div>
+                  <div className="text-lg font-semibold text-gray-800 mb-2">
+                    {choreToDelete.name}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Every {choreToDelete.frequency} days • {choreToDelete.assignedTo}
+                  </div>
+                </div>
+
+                <p className="text-sm text-red-600 font-medium mb-4 text-center bg-red-50 p-2.5 rounded-lg">
+                  ⚠️ This action cannot be undone
+                </p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={cancelDeleteChore}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-gray-300 transition"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    onClick={confirmDeleteChore}
+                    className="flex-1 bg-red-500 text-white py-2.5 sm:py-3 rounded-xl font-medium hover:bg-red-600 transition"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* COMPLETION CONFIRMATION MODAL */}
+          {showConfirmation && confirmationData && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full mx-2 p-4 sm:p-6 relative">
+                <button
+                  onClick={() => setShowConfirmation(false)}
+                  className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
+                >
+                  <X size={24} />
+                </button>
+
+                <div className="text-center mb-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 text-teal-600" />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1.5">
+                    Chore Completed!
+                  </h2>
+                </div>
+
+                <div className="space-y-3 bg-gray-50 rounded-xl p-3 sm:p-4">
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Chore</div>
+                    <div className="text-lg font-semibold text-gray-800">
+                      {confirmationData.choreName}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Completed by</div>
+                      <div className="font-medium text-gray-800">
+                        {confirmationData.completedBy}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Completed on</div>
+                      {editingConfirmationDate ? (
+                        <div className="space-y-2">
+                          <input
+                            type="date"
+                            value={confirmationEditDate}
+                            onChange={(e) => setConfirmationEditDate(e.target.value)}
+                            className="w-full px-2 py-1 text-sm border-2 border-teal-400 rounded-lg focus:outline-none focus:border-teal-500"
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                const newDate = createHawaiiDate(confirmationEditDate);
+                                setConfirmationData(prev => ({
+                                  ...prev,
+                                  completedDate: newDate,
+                                  nextDue: calculateNextDue(
+                                    newDate,
+                                    chores.find(c => c.id === prev.choreId).frequency
+                                  )
+                                }));
+                                setEditingConfirmationDate(false);
+                              }}
+                              className="flex-1 bg-teal-500 text-white py-1 rounded-lg text-xs font-medium hover:bg-teal-600 transition"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingConfirmationDate(false);
+                                setConfirmationEditDate('');
+                              }}
+                              className="flex-1 bg-gray-300 text-gray-700 py-1 rounded-lg text-xs font-medium hover:bg-gray-400 transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => {
+                            setEditingConfirmationDate(true);
+                            setConfirmationEditDate(formatDateToInput(confirmationData.completedDate));
+                          }}
+                          className="font-medium text-gray-800 cursor-pointer hover:text-teal-600 transition flex items-center gap-2"
+                        >
+                          {formatDate(confirmationData.completedDate)}
+                          <Edit2 className="w-4 h-4 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-500 mb-1">Next due date</div>
+                    <div className="text-lg font-semibold text-teal-600">
+                      {formatDate(confirmationData.nextDue)}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const finalDate = confirmationData.completedDate;
+                    setChores(prevChores =>
+                      prevChores.map(chore =>
+                        chore.id === confirmationData.choreId
+                          ? { ...chore, lastCompleted: finalDate }
+                          : chore
+                      )
+                    );
+                    setCompletionHistory(prev =>
+                      prev.map(h =>
+                        h.choreId === confirmationData.choreId &&
+                        h.id === lastCompletedChore?.historyEntryId
+                          ? { ...h, completedDate: finalDate }
+                          : h
+                      )
+                    );
+                    setShowConfirmation(false);
+                    setEditingConfirmationDate(false);
+                    setConfirmationEditDate('');
+                  }}
+                  className="w-full mt-4 bg-teal-500 text-white py-2.5 rounded-xl font-medium hover:bg-teal-600 transition"
+                >
+                  Confirm
+                </button>
+
+                <button
+                  onClick={undoCompletion}
+                  className="w-full mt-2 bg-white border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-medium hover:bg-gray-50 transition"
+                >
+                  Go Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* MAIN CONTAINER */}
+          <div className="sm:max-w-6xl sm:mx-auto w-full px-2 sm:px-4">
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-2 sm:mb-4 gap-2">
+              <div className="text-lg sm:text-xl font-bold text-gray-800">
+                Family Chore Tracker
+              </div>
+              <button
+                onClick={() => setShowManageChores(true)}
+                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-white border-2 border-gray-200 rounded-lg sm:rounded-xl text-gray-700 text-xs sm:text-sm font-medium hover:border-teal-400 hover:text-teal-600 transition"
+              >
+                <Settings size={18} />
+                Manage Chores
+              </button>
+            </div>
+
+            {/* MANAGE CHORES MODAL */}
+            {showManageChores && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full m-2 sm:m-4 max-h-[90vh] flex flex-col relative">
+                  <button
+                    onClick={() => setShowManageChores(false)}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition z-10"
+                  >
+                    <X size={24} />
+                  </button>
+
+                  <div className="p-3 sm:p-5 pb-2 flex-shrink-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">
+                      Manage Chores
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      Add new chores, edit names, and adjust frequencies
+                    </p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-3 sm:px-5 min-h-0">
+                    {/* ADD NEW CHORE */}
+                    <div className="mb-3 p-3 bg-teal-50 rounded-xl border-2 border-teal-200">
+                      <h3 className="font-semibold text-gray-800 mb-2 text-sm">
+                        Add New Chore
+                      </h3>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={newChoreName}
+                          onChange={(e) => setNewChoreName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && addNewChore()}
+                          className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-400"
+                          placeholder="Chore name"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="number"
+                            value={newChoreFrequency}
+                            onChange={(e) => setNewChoreFrequency(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-400"
+                            placeholder="Days"
+                            min="1"
+                            max="365"
+                          />
+                          <select
+                            value={newChoreAssignedTo}
+                            onChange={(e) => setNewChoreAssignedTo(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-400"
+                          >
+                            <option value="Kawika">Kawika</option>
+                            <option value="Jordyn">Jordyn</option>
+                          </select>
+                        </div>
+                        <button
+                          onClick={addNewChore}
+                          className="w-full bg-teal-500 text-white py-2 rounded-xl text-sm font-medium hover:bg-teal-600 transition"
+                        >
+                          Add Chore
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* EXISTING CHORES */}
+                    <div className="mb-4">
+                      <h3 className="font-semibold text-gray-800 mb-2 text-sm">
+                        Existing Chores
+                      </h3>
+                      <div className="space-y-2">
+                        {chores.map((chore) => (
+                          <div
+                            key={chore.id}
+                            className="p-2.5 bg-gray-50 rounded-lg border-2 border-gray-200"
+                          >
+                            {editingChoreName === chore.id ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editedChoreName}
+                                  onChange={(e) => setEditedChoreName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      saveEditChoreName(chore.id);
+                                    } else if (e.key === 'Escape') {
+                                      cancelEditChoreName();
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 text-sm border-2 border-teal-400 rounded-lg focus:outline-none focus:border-teal-500"
+                                  autoFocus
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => saveEditChoreName(chore.id)}
+                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={cancelEditChoreName}
+                                    className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : editingFrequency === chore.id ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="text-gray-700">{chore.name} - Every</span>
+                                  <input
+                                    type="number"
+                                    value={newFrequency}
+                                    onChange={(e) => setNewFrequency(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        saveFrequency(chore.id);
+                                      } else if (e.key === 'Escape') {
+                                        cancelEditFrequency();
+                                      }
+                                    }}
+                                    className="w-16 px-2 py-1 text-sm border-2 border-teal-400 rounded-lg text-center focus:outline-none focus:border-teal-500"
+                                    min="1"
+                                    max="365"
+                                    autoFocus
+                                  />
+                                  <span className="text-gray-700">days</span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => saveFrequency(chore.id)}
+                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={cancelEditFrequency}
+                                    className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-800 text-sm truncate">
+                                      {chore.name}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      Every {chore.frequency} days • {chore.assignedTo}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => startDeleteChore(chore)}
+                                    className="px-2 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-xs font-medium flex-shrink-0"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2 pt-2 border-t border-gray-200">
+                                  <button
+                                    onClick={() => startEditChoreName(chore)}
+                                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-xs font-medium"
+                                  >
+                                    Edit Name
+                                  </button>
+                                  <button
+                                    onClick={() => startEditFrequency(chore)}
+                                    className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-xs font-medium"
+                                  >
+                                    Edit Frequency
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 sm:p-5 pt-2 border-t border-gray-200 flex-shrink-0">
+                    <button
+                      onClick={() => setShowManageChores(false)}
+                      className="w-full bg-gray-200 text-gray-700 py-2.5 rounded-xl font-medium hover:bg-gray-300 transition"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* NAVIGATION BUTTONS */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 sm:mb-4">
+              <button
+                onClick={() => setCurrentView('upcoming')}
+                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${
+                  currentView === 'upcoming'
+                    ? 'bg-teal-500 text-white shadow-lg'
+                    : 'bg-white text-gray-600 hover:shadow-md'
+                }`}
+              >
+                <CheckCircle className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />
+                <div className="font-medium text-sm sm:text-base">Chores</div>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${
+                  currentView === 'dashboard'
+                    ? 'bg-teal-500 text-white shadow-lg'
+                    : 'bg-white text-gray-600 hover:shadow-md'
+                }`}
+              >
+                <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />
+                <div className="font-medium text-sm sm:text-base">Dashboard</div>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('calendar')}
+                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${
+                  currentView === 'calendar'
+                    ? 'bg-teal-500 text-white shadow-lg'
+                    : 'bg-white text-gray-600 hover:shadow-md'
+                }`}
+              >
+                <Calendar className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />
+                <div className="font-medium text-sm sm:text-base">Calendar</div>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('changelog')}
+                className={`rounded-lg sm:rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center transition-all ${
+                  currentView === 'changelog'
+                    ? 'bg-teal-500 text-white shadow-lg'
+                    : 'bg-white text-gray-600 hover:shadow-md'
+                }`}
+              >
+                <Edit2 className="w-5 h-5 sm:w-7 sm:h-7 mb-1" />
+                <div className="font-medium text-sm sm:text-base">Change Log</div>
+              </button>
+            </div>
+
+            {/* CHANGE LOG VIEW */}
+            {currentView === 'changelog' && (
+              <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">
+                <div className="text-xl sm:text-2xl font-medium text-gray-800 mb-3 sm:mb-4">
+                  Change Log
+                </div>
+                {changeLog.length === 0 ? (
+                  <div className="text-center py-8 sm:py-10">
+                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-400 text-lg">No activity yet</p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Actions will appear here as you use the app
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {changeLog.map((log) => (
+                      <div
+                        key={log.id}
+                        className="p-4 bg-gray-50 rounded-xl border-2 border-transparent hover:border-teal-200 transition-all"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                log.action === 'completed' ? 'bg-teal-100' : 'bg-blue-100'
+                              }`}
+                            >
+                              {log.action === 'completed' ? (
+                                <CheckCircle className="w-5 h-5 text-teal-600" />
+                              ) : (
+                                <Edit2 className="w-5 h-5 text-blue-600" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">{log.details}</div>
+                              <div className="text-sm text-gray-500 mt-1">By {log.person}</div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(log.timestamp).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* DASHBOARD VIEW */}
+            {currentView === 'dashboard' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:grid sm:grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {/* WEEKLY STATS */}
+                  <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-transparent hover:border-teal-400 transition-all">
+                    <div className="text-sm text-gray-500 mb-2">This Week</div>
+                    <div className="text-4xl font-bold text-teal-600 mb-4">
+                      {weeklyStats.total}
+                    </div>
+                    <div className="text-gray-600 mb-4">Chores completed</div>
+                    <div className="space-y-2 mb-4">
+                      {Object.entries(weeklyStats.byPerson).map(([person, count]) => (
+                        <div key={person} className="flex justify-between items-center">
+                          <span className="text-gray-700">{person}</span>
+                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-teal-500 rounded-full"
+                              style={{ width: `${(count / weeklyStats.total) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-teal-600 font-medium text-sm">{count}</span>
+                        </div>
+                      ))}
+                      {Object.keys(weeklyStats.byPerson).length === 0 && (
+                        <p className="text-gray-400 text-sm">No chores completed this week yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MONTHLY STATS */}
+                  <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-transparent hover:border-teal-400 transition-all">
+                    <div className="text-sm text-gray-500 mb-2">This Month</div>
+                    <div className="text-4xl font-bold text-teal-600 mb-4">
+                      {monthlyStats.total}
+                    </div>
+                    <div className="text-gray-600 mb-4">Chores completed</div>
+                    <div className="space-y-2 mb-4">
+                      {Object.entries(monthlyStats.byPerson).map(([person, count]) => (
+                        <div key={person} className="flex justify-between items-center">
+                          <span className="text-gray-700">{person}</span>
+                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-teal-500 rounded-full"
+                              style={{ width: `${(count / monthlyStats.total) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-teal-600 font-medium text-sm">{count}</span>
+                        </div>
+                      ))}
+                      {Object.keys(monthlyStats.byPerson).length === 0 && (
+                        <p className="text-gray-400 text-sm">No chores completed this month yet</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* RECENT ACTIVITY */}
+                <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">
+                  <div className="text-lg font-medium text-gray-800 mb-4">Recent activity</div>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {completionHistory.slice().reverse().slice(0, 20).map(completion => (
+                      <div key={completion.id} className="flex justify-between items-center py-2">
+                        <div>
+                          <div className="font-medium text-gray-800">{completion.choreName}</div>
+                          <div className="text-sm text-gray-500">{completion.completedBy}</div>
+                        </div>
+                        <span className="text-sm text-gray-400">
+                          {formatDate(completion.completedDate)}
+                        </span>
+                      </div>
+                    ))}
+                    {completionHistory.length === 0 && (
+                      <p className="text-gray-400 text-center py-8">
+                        No completions recorded yet
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CHORES VIEW */}
+            {currentView === 'upcoming' && (
+              <div className="space-y-2">
+                {upcomingChores.map((chore) => (
+                  <div
+                    key={chore.id}
+                    className={`bg-white rounded-none sm:rounded-xl shadow-sm border-2 border-transparent hover:border-teal-400 transition-all ${
+                      animatingChoreId === chore.id ? 'animate-pulse' : ''
+                    }`}
+                    style={{
+                      transition: 'all 0.5s ease-in-out',
+                      transform: animatingChoreId === chore.id ? 'scale(1.02)' : 'scale(1)'
+                    }}
+                  >
+                    <div
+                      onClick={() => toggleChoreExpand(chore.id)}
+                      className="p-3 cursor-pointer"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-base sm:text-lg text-gray-800">
+                            {chore.name}
+                          </h3>
+                          <p className="text-sm text-gray-500 mt-1">{chore.assignedTo}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-sm font-medium ${getStatusColor(chore.daysUntil)}`}>
+                            {getStatusText(chore.daysUntil)}
+                          </span>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {formatDate(chore.nextDue)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {expandedChoreId === chore.id && (
+                      <div className="px-3 pb-3 pt-2 border-t border-gray-100">
+                        <div className="mb-3">
+                          <div className="text-sm mb-3 pt-3 border-t border-gray-100">
+                            <span className={`font-medium ${getStatusColor(chore.daysUntil)}`}>
+                              {getStatusText(chore.daysUntil)}
+                            </span>
+                            <span className="text-gray-400 ml-2">
+                              • Every {chore.frequency} days
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => markAsComplete(chore.id, 'Kawika')}
+                              className="bg-teal-500 text-white py-2 px-4 rounded-xl font-medium hover:bg-teal-600 transition text-sm"
+                            >
+                              Kawika completed
+                            </button>
+                            <button
+                              onClick={() => markAsComplete(chore.id, 'Jordyn')}
+                              className="bg-white border-2 border-teal-500 text-teal-600 py-2 px-4 rounded-xl font-medium hover:bg-teal-50 transition text-sm"
+                            >
+                              Jordyn completed
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* CALENDAR VIEW */}
+            {currentView === 'calendar' && (
+              <div className="space-y-4">
+                {/* CALENDAR GRID */}
+                <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-6">
+                    <button
+                      onClick={() => changeMonth(-1)}
+                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+                    >
+                      <span className="text-gray-600 text-xl">‹</span>
+                    </button>
+                    <div className="text-2xl font-medium text-gray-800">
+                      {currentMonth.toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </div>
+                    <button
+                      onClick={() => changeMonth(1)}
+                      className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+                    >
+                      <span className="text-gray-600 text-xl">›</span>
+                    </button>
+                  </div>
+
+                  {/* WEEKDAY HEADERS */}
+                  <div className="grid grid-cols-7 gap-2 mb-4">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CALENDAR DAYS */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {(() => {
+                      const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
+                      const days = [];
+
+                      // Empty cells before first day of month
+                      for (let i = 0; i < startingDayOfWeek; i++) {
+                        days.push(<div key={`empty-${i}`} className="h-16" />);
+                      }
+
+                      // Calendar days
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const date = new Date(year, month, day);
+                        const { completed, upcoming } = getChoresForDate(date);
+                        const isTodayDate = isToday(date);
+                        const isSelected = isSameDay(date, selectedDate);
+
+                        days.push(
+                          <button
+                            key={day}
+                            onClick={() => setSelectedDate(date)}
+                            className={`h-20 md:h-16 p-2 rounded-xl border-2 transition-all relative ${
+                              isSelected
+                                ? 'border-teal-500 bg-teal-50'
+                                : isTodayDate
+                                ? 'border-teal-300 bg-teal-50'
+                                : completed.length > 0 || upcoming.length > 0
+                                ? 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                : 'border-gray-100 hover:border-gray-200'
+                            }`}
+                          >
+                            <div className={`text-sm font-medium absolute top-2 left-2 ${
+                              isTodayDate ? 'text-teal-600' : 'text-gray-700'
+                            }`}>
+                              {day}
+                            </div>
+                            <div className="absolute bottom-2 left-0 right-0 flex flex-col gap-1 items-center md:top-2 md:bottom-auto md:left-auto md:right-2 md:items-end">
+                              {completed.length > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <div className="w-6 h-1 bg-green-400 rounded-full"></div>
+                                  <span className="text-xs text-green-700 font-medium leading-none">
+                                    {completed.length}
+                                  </span>
+                                </div>
+                              )}
+                              {upcoming.length > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <div className="w-6 h-1 bg-orange-400 rounded-full"></div>
+                                  <span className="text-xs text-orange-700 font-medium leading-none">
+                                    {upcoming.length}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      }
+
+                      return days;
+                    })()}
+                  </div>
+
+                  {/* LEGEND */}
+                  <div className="mt-4 flex gap-4 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded border-2 border-teal-300 bg-teal-50" />
+                      <span className="text-gray-600">Today</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-1 rounded bg-green-400" />
+                      <span className="text-gray-600">Completed</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-1 rounded bg-orange-400" />
+                      <span className="text-gray-600">Due</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SELECTED DATE DETAILS */}
+                <div className="bg-white rounded-none sm:rounded-2xl shadow-sm p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      {isToday(selectedDate) ? 'Today' : selectedDate.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </h2>
+                    {!isToday(selectedDate) && (
+                      <button
+                        onClick={() => setSelectedDate(getHawaiiDate())}
+                        className="px-4 py-2 bg-teal-100 text-teal-700 rounded-xl text-sm font-medium hover:bg-teal-200 transition"
+                      >
+                        Go to Today
+                      </button>
+                    )}
+                  </div>
+
+                  {(() => {
+                    const { completed, upcoming } = getChoresForDate(selectedDate);
+
+                    if (completed.length === 0 && upcoming.length === 0) {
+                      return (
+                        <div className="text-center py-8 sm:py-10">
+                          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-400 text-lg">No chores for this day</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-6">
+                        {/* COMPLETED CHORES */}
+                        {completed.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                              <CheckCircle className="w-5 h-5 text-green-600" />
+                              Completed ({completed.length})
+                            </h3>
+                            <div className="space-y-2">
+                              {completed.map((chore, index) => {
+                                const choreKey = `completed-${chore.completionId}`;
+                                const isExpanded = expandedCalendarChoreId === choreKey;
+
+                                return (
+                                  <div
+                                    key={choreKey}
+                                    className="bg-green-50 border-2 border-green-200 rounded-xl overflow-hidden"
+                                  >
+                                    <div
+                                      onClick={() => setExpandedCalendarChoreId(isExpanded ? null : choreKey)}
+                                      className="p-4 cursor-pointer hover:bg-green-100 transition"
+                                    >
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                          <h4 className="font-semibold text-gray-800">
+                                            {chore.name}
+                                          </h4>
+                                          <p className="text-sm text-gray-600 mt-1">
+                                            Completed by {chore.completedBy}
+                                          </p>
+                                        </div>
+                                        <div className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                                          ✓ Done
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {isExpanded && (
+                                      <div className="px-4 pb-4 pt-2 border-t border-green-200 space-y-3">
+                                        <div>
+                                          <label className="text-xs text-gray-600 block mb-1">
+                                            Completed on
+                                          </label>
+                                          <input
+                                            type="date"
+                                            value={editingCompletedDate || formatDateToInput(new Date(chore.completedDate))}
+                                            onChange={(e) => setEditingCompletedDate(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-teal-400"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-xs text-gray-600 block mb-1">
+                                            Completed by
+                                          </label>
+                                          <select
+                                            value={editingCompletedBy || chore.completedBy}
+                                            onChange={(e) => setEditingCompletedBy(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-teal-400"
+                                          >
+                                            <option value="Kawika">Kawika</option>
+                                            <option value="Jordyn">Jordyn</option>
+                                          </select>
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            const newDate = createHawaiiDate(
+                                              editingCompletedDate || formatDateToInput(new Date(chore.completedDate))
+                                            );
+                                            const newPerson = editingCompletedBy || chore.completedBy;
+
+                                            setCompletionHistory(prev =>
+                                              prev.map(h =>
+                                                h.id === chore.completionId
+                                                  ? { ...h, completedDate: newDate, completedBy: newPerson }
+                                                  : h
+                                              )
+                                            );
+
+                                            setChangeLog(prev => [
+                                              {
+                                                id: Date.now(),
+                                                action: 'edited',
+                                                choreName: chore.name,
+                                                person: 'System',
+                                                timestamp: getHawaiiDate(),
+                                                details: `Updated completion record for "${chore.name}"`
+                                              },
+                                              ...prev
+                                            ]);
+
+                                            setEditingCompletedDate('');
+                                            setEditingCompletedBy('');
+                                            setExpandedCalendarChoreId(null);
+                                          }}
+                                          className="w-full bg-teal-500 text-white py-2 rounded-xl font-medium hover:bg-teal-600 transition text-sm"
+                                        >
+                                          Update Completion
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* UPCOMING CHORES */}
+                        {upcoming.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                              <Calendar className="w-5 h-5 text-orange-600" />
+                              Due Today ({upcoming.length})
+                            </h3>
+                            <div className="space-y-2">
+                              {upcoming.map((chore) => {
+                                const choreKey = `upcoming-${chore.id}`;
+                                const isExpanded = expandedCalendarChoreId === choreKey;
+
+                                return (
+                                  <div
+                                    key={choreKey}
+                                    className="bg-orange-50 border-2 border-orange-200 rounded-xl overflow-hidden"
+                                  >
+                                    <div
+                                      onClick={() => setExpandedCalendarChoreId(isExpanded ? null : choreKey)}
+                                      className="p-4 cursor-pointer hover:bg-orange-100 transition"
+                                    >
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                          <h4 className="font-semibold text-gray-800">
+                                            {chore.name}
+                                          </h4>
+                                          <p className="text-sm text-gray-600 mt-1">
+                                            Assigned to {chore.assignedTo} • Every {chore.frequency} days
+                                          </p>
+                                          <p className={`text-sm font-medium mt-1 ${getStatusColor(chore.daysUntil)}`}>
+                                            {getStatusText(chore.daysUntil)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {isExpanded && (
+                                      <div className="px-4 pb-4 pt-2 border-t border-orange-200 space-y-3">
+                                        <div>
+                                          <label className="text-xs text-gray-600 block mb-1">
+                                            Reschedule due date
+                                          </label>
+                                          <input
+                                            type="date"
+                                            value={editingUpcomingDate || formatDateToInput(chore.nextDue)}
+                                            onChange={(e) => setEditingUpcomingDate(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-400"
+                                          />
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            const newDueDate = createHawaiiDate(
+                                              editingUpcomingDate || formatDateToInput(chore.nextDue)
+                                            );
+                                            const newLastCompleted = new Date(newDueDate);
+                                            newLastCompleted.setDate(newDueDate.getDate() - chore.frequency);
+
+                                            setChores(prevChores =>
+                                              prevChores.map(c =>
+                                                c.id === chore.id
+                                                  ? { ...c, lastCompleted: newLastCompleted }
+                                                  : c
+                                              )
+                                            );
+
+                                            setChangeLog(prev => [
+                                              {
+                                                id: Date.now(),
+                                                action: 'edited',
+                                                choreName: chore.name,
+                                                person: 'System',
+                                                timestamp: getHawaiiDate(),
+                                                details: `Rescheduled "${chore.name}" to be due on ${formatDate(newDueDate)}`
+                                              },
+                                              ...prev
+                                            ]);
+
+                                            setEditingUpcomingDate('');
+                                            setExpandedCalendarChoreId(null);
+                                          }}
+                                          className="w-full bg-orange-500 text-white py-2 rounded-xl font-medium hover:bg-orange-600 transition text-sm"
+                                        >
+                                          Update Due Date
+                                        </button>
+
+                                        {isToday(selectedDate) && (
+                                          <>
+                                            <div className="text-xs text-gray-500 text-center">
+                                              or mark as complete
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                              <button
+                                                onClick={() => markAsComplete(chore.id, 'Kawika')}
+                                                className="bg-teal-500 text-white py-2 px-4 rounded-xl font-medium hover:bg-teal-600 transition text-sm"
+                                              >
+                                                Kawika completed
+                                              </button>
+                                              <button
+                                                onClick={() => markAsComplete(chore.id, 'Jordyn')}
+                                                className="bg-white border-2 border-teal-500 text-teal-600 py-2 px-4 rounded-xl font-medium hover:bg-teal-50 transition text-sm"
+                                              >
+                                                Jordyn completed
+                                              </button>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================================================
+    // RENDER APP
+    // ============================================================================
+
+    ReactDOM.render(<ChoreTracker />, document.getElementById('root'));
+  </script>
+</body>
+</html>
