@@ -8,12 +8,34 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo } = React;
+    const { useState, useMemo, useEffect } = React;
+
+    // ============================================================================
+    // FIREBASE CONFIGURATION
+    // ============================================================================
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0ChRwf_l8u-xregnGLoN3OAkGOiadJww",
+      authDomain: "family-chores-92c31.firebaseapp.com",
+      projectId: "family-chores-92c31",
+      storageBucket: "family-chores-92c31.firebasestorage.app",
+      messagingSenderId: "333651647825",
+      appId: "1:333651647825:web:3db061aaec9883dbf24770",
+      measurementId: "G-56D82883ST"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     // ============================================================================
     // ICON COMPONENTS
@@ -256,6 +278,127 @@
       const [editingCompletedDate, setEditingCompletedDate] = useState('');
       const [editingCompletedBy, setEditingCompletedBy] = useState('');
       const [editingUpcomingDate, setEditingUpcomingDate] = useState('');
+
+      // Loading state
+      const [isLoading, setIsLoading] = useState(true);
+
+      // --------------------------------------------------------------------------
+      // FIRESTORE DATA SYNC
+      // --------------------------------------------------------------------------
+
+      // Load data from Firestore on mount
+      useEffect(() => {
+        const loadData = async () => {
+          try {
+            // Load chores
+            const choresDoc = await db.collection('familyChores').doc('choresData').get();
+            if (choresDoc.exists) {
+              const data = choresDoc.data();
+              if (data.chores) {
+                // Convert date strings back to Date objects
+                const parsedChores = data.chores.map(chore => ({
+                  ...chore,
+                  lastCompleted: new Date(chore.lastCompleted)
+                }));
+                setChores(parsedChores);
+              }
+            }
+
+            // Load completion history
+            const historyDoc = await db.collection('familyChores').doc('completionHistory').get();
+            if (historyDoc.exists) {
+              const data = historyDoc.data();
+              if (data.history) {
+                const parsedHistory = data.history.map(h => ({
+                  ...h,
+                  completedDate: new Date(h.completedDate)
+                }));
+                setCompletionHistory(parsedHistory);
+              }
+            }
+
+            // Load change log
+            const changeLogDoc = await db.collection('familyChores').doc('changeLog').get();
+            if (changeLogDoc.exists) {
+              const data = changeLogDoc.data();
+              if (data.log) {
+                const parsedLog = data.log.map(l => ({
+                  ...l,
+                  timestamp: new Date(l.timestamp)
+                }));
+                setChangeLog(parsedLog);
+              }
+            }
+
+            setIsLoading(false);
+          } catch (error) {
+            console.error('Error loading data from Firestore:', error);
+            setIsLoading(false);
+          }
+        };
+
+        loadData();
+      }, []);
+
+      // Save chores to Firestore whenever they change
+      useEffect(() => {
+        if (!isLoading && chores.length > 0) {
+          const saveChores = async () => {
+            try {
+              await db.collection('familyChores').doc('choresData').set({
+                chores: chores.map(chore => ({
+                  ...chore,
+                  lastCompleted: chore.lastCompleted.toISOString()
+                })),
+                lastUpdated: new Date().toISOString()
+              });
+            } catch (error) {
+              console.error('Error saving chores to Firestore:', error);
+            }
+          };
+          saveChores();
+        }
+      }, [chores, isLoading]);
+
+      // Save completion history to Firestore whenever it changes
+      useEffect(() => {
+        if (!isLoading) {
+          const saveHistory = async () => {
+            try {
+              await db.collection('familyChores').doc('completionHistory').set({
+                history: completionHistory.map(h => ({
+                  ...h,
+                  completedDate: h.completedDate.toISOString()
+                })),
+                lastUpdated: new Date().toISOString()
+              });
+            } catch (error) {
+              console.error('Error saving history to Firestore:', error);
+            }
+          };
+          saveHistory();
+        }
+      }, [completionHistory, isLoading]);
+
+      // Save change log to Firestore whenever it changes
+      useEffect(() => {
+        if (!isLoading) {
+          const saveChangeLog = async () => {
+            try {
+              await db.collection('familyChores').doc('changeLog').set({
+                log: changeLog.map(l => ({
+                  ...l,
+                  timestamp: l.timestamp.toISOString()
+                })),
+                lastUpdated: new Date().toISOString()
+              });
+            } catch (error) {
+              console.error('Error saving change log to Firestore:', error);
+            }
+          };
+          saveChangeLog();
+        }
+      }, [changeLog, isLoading]);
 
       // --------------------------------------------------------------------------
       // HAWAII TIMEZONE FUNCTIONS
@@ -693,6 +836,18 @@
       // --------------------------------------------------------------------------
       // RENDER
       // --------------------------------------------------------------------------
+
+      // Show loading screen while data is being fetched
+      if (isLoading) {
+        return (
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <div className="text-xl font-medium text-gray-700">Loading your chores...</div>
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="min-h-screen bg-gray-50">
