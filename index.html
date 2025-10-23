@@ -266,6 +266,8 @@
       const [newChoreAssignedTo, setNewChoreAssignedTo] = useState('Kawika');
       const [editingChoreName, setEditingChoreName] = useState(null);
       const [editedChoreName, setEditedChoreName] = useState('');
+      const [editingAssignedTo, setEditingAssignedTo] = useState(null);
+      const [newAssignedTo, setNewAssignedTo] = useState('');
 
       // Delete confirmation modal state
       const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -651,6 +653,46 @@
       const cancelEditChoreName = () => {
         setEditingChoreName(null);
         setEditedChoreName('');
+      };
+
+      const startEditAssignedTo = (chore) => {
+        setEditingAssignedTo(chore.id);
+        setNewAssignedTo(chore.assignedTo);
+      };
+
+      const saveEditAssignedTo = (choreId) => {
+        const chore = chores.find(c => c.id === choreId);
+        const oldAssignedTo = chore.assignedTo;
+
+        if (newAssignedTo && newAssignedTo !== oldAssignedTo) {
+          setChores(prevChores =>
+            prevChores.map(chore =>
+              chore.id === choreId
+                ? { ...chore, assignedTo: newAssignedTo }
+                : chore
+            )
+          );
+
+          setChangeLog(prev => [
+            {
+              id: Date.now(),
+              action: 'edited',
+              choreName: chore.name,
+              person: 'System',
+              timestamp: getHawaiiDate(),
+              details: `Changed "${chore.name}" assignment from ${oldAssignedTo} to ${newAssignedTo}`
+            },
+            ...prev
+          ]);
+
+          setEditingAssignedTo(null);
+          setNewAssignedTo('');
+        }
+      };
+
+      const cancelEditAssignedTo = () => {
+        setEditingAssignedTo(null);
+        setNewAssignedTo('');
       };
 
       const startDeleteChore = (chore) => {
@@ -1278,6 +1320,35 @@
                                   </button>
                                 </div>
                               </div>
+                            ) : editingAssignedTo === chore.id ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="text-gray-700">{chore.name} - Assigned to</span>
+                                  <select
+                                    value={newAssignedTo}
+                                    onChange={(e) => setNewAssignedTo(e.target.value)}
+                                    className="px-3 py-1 text-sm border-2 border-teal-400 rounded-lg focus:outline-none focus:border-teal-500"
+                                    autoFocus
+                                  >
+                                    <option value="Kawika">Kawika</option>
+                                    <option value="Jordyn">Jordyn</option>
+                                  </select>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => saveEditAssignedTo(chore.id)}
+                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={cancelEditAssignedTo}
+                                    className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
                             ) : (
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center gap-2">
@@ -1296,7 +1367,7 @@
                                     Delete
                                   </button>
                                 </div>
-                                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2 pt-2 border-t border-gray-200">
+                                <div className="flex flex-col sm:grid sm:grid-cols-3 gap-2 pt-2 border-t border-gray-200">
                                   <button
                                     onClick={() => startEditChoreName(chore)}
                                     className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-xs font-medium"
@@ -1308,6 +1379,12 @@
                                     className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-xs font-medium"
                                   >
                                     Edit Frequency
+                                  </button>
+                                  <button
+                                    onClick={() => startEditAssignedTo(chore)}
+                                    className="px-3 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-xs font-medium"
+                                  >
+                                    Edit Assigned To
                                   </button>
                                 </div>
                               </div>
