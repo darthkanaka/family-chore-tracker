@@ -1076,6 +1076,15 @@
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
+                                setEditingConfirmationDate(false);
+                                setConfirmationEditDate('');
+                              }}
+                              className="flex-1 bg-gray-300 text-gray-700 py-1 rounded-lg text-xs font-medium hover:bg-gray-400 transition"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => {
                                 const newDate = createHawaiiDate(confirmationEditDate);
                                 setConfirmationData(prev => ({
                                   ...prev,
@@ -1090,15 +1099,6 @@
                               className="flex-1 bg-teal-500 text-white py-1 rounded-lg text-xs font-medium hover:bg-teal-600 transition"
                             >
                               Save
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingConfirmationDate(false);
-                                setConfirmationEditDate('');
-                              }}
-                              className="flex-1 bg-gray-300 text-gray-700 py-1 rounded-lg text-xs font-medium hover:bg-gray-400 transition"
-                            >
-                              Cancel
                             </button>
                           </div>
                         </div>
@@ -1270,16 +1270,16 @@
                                 />
                                 <div className="flex gap-2">
                                   <button
-                                    onClick={() => saveEditChoreName(chore.id)}
-                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
                                     onClick={cancelEditChoreName}
                                     className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"
                                   >
                                     Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => saveEditChoreName(chore.id)}
+                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
+                                  >
+                                    Save
                                   </button>
                                 </div>
                               </div>
@@ -1307,16 +1307,16 @@
                                 </div>
                                 <div className="flex gap-2">
                                   <button
-                                    onClick={() => saveFrequency(chore.id)}
-                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
                                     onClick={cancelEditFrequency}
                                     className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"
                                   >
                                     Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => saveFrequency(chore.id)}
+                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
+                                  >
+                                    Save
                                   </button>
                                 </div>
                               </div>
@@ -1336,16 +1336,16 @@
                                 </div>
                                 <div className="flex gap-2">
                                   <button
-                                    onClick={() => saveEditAssignedTo(chore.id)}
-                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
                                     onClick={cancelEditAssignedTo}
                                     className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"
                                   >
                                     Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => saveEditAssignedTo(chore.id)}
+                                    className="flex-1 bg-teal-500 text-white py-1.5 rounded-lg font-medium hover:bg-teal-600 transition text-sm"
+                                  >
+                                    Save
                                   </button>
                                 </div>
                               </div>
