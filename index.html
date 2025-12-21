@@ -9,9 +9,8 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <!-- Supabase SDK -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -20,22 +19,14 @@
     const { useState, useMemo, useEffect } = React;
 
     // ============================================================================
-    // FIREBASE CONFIGURATION
+    // SUPABASE CONFIGURATION
     // ============================================================================
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA0ChRwf_l8u-xregnGLoN3OAkGOiadJww",
-      authDomain: "family-chores-92c31.firebaseapp.com",
-      projectId: "family-chores-92c31",
-      storageBucket: "family-chores-92c31.firebasestorage.app",
-      messagingSenderId: "333651647825",
-      appId: "1:333651647825:web:3db061aaec9883dbf24770",
-      measurementId: "G-56D82883ST"
-    };
+    const SUPABASE_URL = 'https://pnipcitilwmhmfjulpmd.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaXBjaXRpbHdtaG1manVscG1kIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NjI3NjYwNiwiZXhwIjoyMDgxODUyNjA2fQ.UiUDQPUQk9HhKbsT6tcq1ennpAizIc_i286IqhKsiLo';
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // Initialize Supabase
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ============================================================================
     // ICON COMPONENTS
@@ -289,56 +280,74 @@
       const [isLoading, setIsLoading] = useState(true);
 
       // --------------------------------------------------------------------------
-      // FIRESTORE DATA SYNC
+      // SUPABASE DATA SYNC
       // --------------------------------------------------------------------------
 
-      // Load data from Firestore on mount
+      // Load data from Supabase on mount
       useEffect(() => {
         const loadData = async () => {
           try {
             // Load chores
-            const choresDoc = await db.collection('familyChores').doc('choresData').get();
-            if (choresDoc.exists) {
-              const data = choresDoc.data();
-              if (data.chores) {
-                // Convert date strings back to Date objects
-                const parsedChores = data.chores.map(chore => ({
-                  ...chore,
-                  lastCompleted: new Date(chore.lastCompleted)
-                }));
-                setChores(parsedChores);
-              }
+            const { data: choresData, error: choresError } = await supabase
+              .from('chores')
+              .select('*');
+
+            if (choresError) throw choresError;
+
+            if (choresData && choresData.length > 0) {
+              // Convert from Supabase format (snake_case) to app format (camelCase)
+              const parsedChores = choresData.map(chore => ({
+                id: chore.id,
+                name: chore.name,
+                frequency: chore.frequency_days,
+                assignedTo: chore.assigned_to,
+                lastCompleted: new Date(chore.last_completed),
+                completedBy: chore.completed_by
+              }));
+              setChores(parsedChores);
             }
 
             // Load completion history
-            const historyDoc = await db.collection('familyChores').doc('completionHistory').get();
-            if (historyDoc.exists) {
-              const data = historyDoc.data();
-              if (data.history) {
-                const parsedHistory = data.history.map(h => ({
-                  ...h,
-                  completedDate: new Date(h.completedDate)
-                }));
-                setCompletionHistory(parsedHistory);
-              }
+            const { data: historyData, error: historyError } = await supabase
+              .from('completion_history')
+              .select('*');
+
+            if (historyError) throw historyError;
+
+            if (historyData && historyData.length > 0) {
+              const parsedHistory = historyData.map(h => ({
+                id: h.id,
+                choreId: h.chore_id,
+                choreName: h.chore_name,
+                completedDate: new Date(h.completed_date),
+                completedBy: h.completed_by
+              }));
+              setCompletionHistory(parsedHistory);
             }
 
             // Load change log
-            const changeLogDoc = await db.collection('familyChores').doc('changeLog').get();
-            if (changeLogDoc.exists) {
-              const data = changeLogDoc.data();
-              if (data.log) {
-                const parsedLog = data.log.map(l => ({
-                  ...l,
-                  timestamp: new Date(l.timestamp)
-                }));
-                setChangeLog(parsedLog);
-              }
+            const { data: logData, error: logError } = await supabase
+              .from('change_log')
+              .select('*')
+              .order('timestamp', { ascending: false });
+
+            if (logError) throw logError;
+
+            if (logData && logData.length > 0) {
+              const parsedLog = logData.map(l => ({
+                id: l.id,
+                action: l.action,
+                choreName: l.chore_name,
+                person: l.person,
+                timestamp: new Date(l.timestamp),
+                details: l.details
+              }));
+              setChangeLog(parsedLog);
             }
 
             setIsLoading(false);
           } catch (error) {
-            console.error('Error loading data from Firestore:', error);
+            console.error('Error loading data from Supabase:', error);
             setIsLoading(false);
           }
         };
@@ -346,60 +355,83 @@
         loadData();
       }, []);
 
-      // Save chores to Firestore whenever they change
+      // Save chores to Supabase whenever they change
       useEffect(() => {
         if (!isLoading && chores.length > 0) {
           const saveChores = async () => {
             try {
-              await db.collection('familyChores').doc('choresData').set({
-                chores: chores.map(chore => ({
-                  ...chore,
-                  lastCompleted: chore.lastCompleted.toISOString()
-                })),
-                lastUpdated: new Date().toISOString()
-              });
+              // Convert to Supabase format (snake_case)
+              const supabaseChores = chores.map(chore => ({
+                id: chore.id,
+                name: chore.name,
+                frequency_days: chore.frequency,
+                assigned_to: chore.assignedTo,
+                last_completed: chore.lastCompleted.toISOString(),
+                completed_by: chore.completedBy
+              }));
+
+              const { error } = await supabase
+                .from('chores')
+                .upsert(supabaseChores, { onConflict: 'id' });
+
+              if (error) throw error;
             } catch (error) {
-              console.error('Error saving chores to Firestore:', error);
+              console.error('Error saving chores to Supabase:', error);
             }
           };
           saveChores();
         }
       }, [chores, isLoading]);
 
-      // Save completion history to Firestore whenever it changes
+      // Save completion history to Supabase whenever it changes
       useEffect(() => {
-        if (!isLoading) {
+        if (!isLoading && completionHistory.length > 0) {
           const saveHistory = async () => {
             try {
-              await db.collection('familyChores').doc('completionHistory').set({
-                history: completionHistory.map(h => ({
-                  ...h,
-                  completedDate: h.completedDate.toISOString()
-                })),
-                lastUpdated: new Date().toISOString()
-              });
+              // Convert to Supabase format (snake_case)
+              const supabaseHistory = completionHistory.map(h => ({
+                id: h.id,
+                chore_id: h.choreId,
+                chore_name: h.choreName,
+                completed_date: h.completedDate.toISOString(),
+                completed_by: h.completedBy
+              }));
+
+              const { error } = await supabase
+                .from('completion_history')
+                .upsert(supabaseHistory, { onConflict: 'id' });
+
+              if (error) throw error;
             } catch (error) {
-              console.error('Error saving history to Firestore:', error);
+              console.error('Error saving history to Supabase:', error);
             }
           };
           saveHistory();
         }
       }, [completionHistory, isLoading]);
 
-      // Save change log to Firestore whenever it changes
+      // Save change log to Supabase whenever it changes
       useEffect(() => {
-        if (!isLoading) {
+        if (!isLoading && changeLog.length > 0) {
           const saveChangeLog = async () => {
             try {
-              await db.collection('familyChores').doc('changeLog').set({
-                log: changeLog.map(l => ({
-                  ...l,
-                  timestamp: l.timestamp.toISOString()
-                })),
-                lastUpdated: new Date().toISOString()
-              });
+              // Convert to Supabase format (snake_case)
+              const supabaseLog = changeLog.map(l => ({
+                id: l.id,
+                action: l.action,
+                chore_name: l.choreName,
+                person: l.person,
+                timestamp: l.timestamp.toISOString(),
+                details: l.details
+              }));
+
+              const { error } = await supabase
+                .from('change_log')
+                .upsert(supabaseLog, { onConflict: 'id' });
+
+              if (error) throw error;
             } catch (error) {
-              console.error('Error saving change log to Firestore:', error);
+              console.error('Error saving change log to Supabase:', error);
             }
           };
           saveChangeLog();
@@ -700,8 +732,16 @@
         setShowDeleteConfirm(true);
       };
 
-      const confirmDeleteChore = () => {
+      const confirmDeleteChore = async () => {
         if (choreToDelete) {
+          // Delete from Supabase first
+          try {
+            await supabase.from('chores').delete().eq('id', choreToDelete.id);
+            await supabase.from('completion_history').delete().eq('chore_id', choreToDelete.id);
+          } catch (error) {
+            console.error('Error deleting from Supabase:', error);
+          }
+
           setChores(prevChores => prevChores.filter(c => c.id !== choreToDelete.id));
           setCompletionHistory(prev => prev.filter(h => h.choreId !== choreToDelete.id));
           setChangeLog(prev => [
@@ -731,8 +771,15 @@
         setShowDeleteCompletionConfirm(true);
       };
 
-      const confirmDeleteCompletion = () => {
+      const confirmDeleteCompletion = async () => {
         if (completionToDelete) {
+          // Delete from Supabase first
+          try {
+            await supabase.from('completion_history').delete().eq('id', completionToDelete.id);
+          } catch (error) {
+            console.error('Error deleting completion from Supabase:', error);
+          }
+
           setCompletionHistory(prev => prev.filter(h => h.id !== completionToDelete.id));
           setChangeLog(prev => [
             {
