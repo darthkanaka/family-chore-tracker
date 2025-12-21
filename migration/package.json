@@ -1,0 +1,16 @@
+{
+  "name": "firebase-to-supabase-migration",
+  "version": "1.0.0",
+  "description": "Migrate family chore tracker data from Firebase to Supabase",
+  "type": "module",
+  "scripts": {
+    "export": "node scripts/export-firebase.js",
+    "migrate": "node scripts/migrate.js",
+    "verify": "node scripts/verify.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1"
+  }
+}

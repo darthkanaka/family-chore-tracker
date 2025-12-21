@@ -1,0 +1,9 @@
+# Secrets - NEVER commit these
+firebase-service-account.json
+.env
+
+# Backups (large files)
+backups/
+
+# Dependencies
+node_modules/

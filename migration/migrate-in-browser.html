@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase to Supabase Migration</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .step:last-child { border-bottom: none; }
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .pending { background: #e0e0e0; color: #666; }
+    .running { background: #fff3cd; color: #856404; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .step-text { flex: 1; }
+    .step-count { color: #666; font-size: 14px; }
+    #startBtn {
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 12px;
+    }
+    #startBtn:hover { background: #0284c7; }
+    #startBtn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #1e1e1e;
+      color: #0f0;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: none;
+    }
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Firebase to Supabase Migration</h1>
+
+  <div class="card">
+    <div class="warning">
+      This will copy all your data from Firebase to Supabase. Your Firebase data will NOT be modified.
+    </div>
+
+    <div class="step" id="step1">
+      <div class="step-icon pending">1</div>
+      <div class="step-text">Connect to Firebase</div>
+      <div class="step-count" id="step1-count"></div>
+    </div>
+
+    <div class="step" id="step2">
+      <div class="step-icon pending">2</div>
+      <div class="step-text">Read chores</div>
+      <div class="step-count" id="step2-count"></div>
+    </div>
+
+    <div class="step" id="step3">
+      <div class="step-icon pending">3</div>
+      <div class="step-text">Read completion history</div>
+      <div class="step-count" id="step3-count"></div>
+    </div>
+
+    <div class="step" id="step4">
+      <div class="step-icon pending">4</div>
+      <div class="step-text">Read change log</div>
+      <div class="step-count" id="step4-count"></div>
+    </div>
+
+    <div class="step" id="step5">
+      <div class="step-icon pending">5</div>
+      <div class="step-text">Connect to Supabase</div>
+      <div class="step-count" id="step5-count"></div>
+    </div>
+
+    <div class="step" id="step6">
+      <div class="step-icon pending">6</div>
+      <div class="step-text">Write chores to Supabase</div>
+      <div class="step-count" id="step6-count"></div>
+    </div>
+
+    <div class="step" id="step7">
+      <div class="step-icon pending">7</div>
+      <div class="step-text">Write completion history</div>
+      <div class="step-count" id="step7-count"></div>
+    </div>
+
+    <div class="step" id="step8">
+      <div class="step-icon pending">8</div>
+      <div class="step-text">Write change log</div>
+      <div class="step-count" id="step8-count"></div>
+    </div>
+
+    <button id="startBtn" disabled>Loading scripts...</button>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <!-- Load scripts at the end of body -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ========================================
+    // CONFIGURATION - Your credentials
+    // ========================================
+    var FIREBASE_CONFIG = {
+      apiKey: "AIzaSyA0ChRwf_l8u-xregnGLoN3OAkGOiadJww",
+      authDomain: "family-chores-92c31.firebaseapp.com",
+      projectId: "family-chores-92c31",
+      storageBucket: "family-chores-92c31.firebasestorage.app",
+      messagingSenderId: "266845809641",
+      appId: "1:266845809641:web:abc123"
+    };
+
+    var SUPABASE_URL = 'https://pnipcitilwmhmfjulpmd.supabase.co';
+    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaXBjaXRpbHdtaG1manVscG1kIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NjI3NjYwNiwiZXhwIjoyMDgxODUyNjA2fQ.UiUDQPUQk9HhKbsT6tcq1ennpAizIc_i286IqhKsiLo';
+
+    // ========================================
+    // MIGRATION LOGIC
+    // ========================================
+    var db, supabaseClient;
+    var chores = [], completionHistory = [], changeLog = [];
+
+    function log(msg) {
+      var logEl = document.getElementById('log');
+      logEl.style.display = 'block';
+      logEl.textContent += msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(msg);
+    }
+
+    function setStep(stepNum, status, count) {
+      var step = document.getElementById('step' + stepNum);
+      var icon = step.querySelector('.step-icon');
+      icon.className = 'step-icon ' + status;
+      if (status === 'success') icon.textContent = '\u2713';
+      else if (status === 'error') icon.textContent = '\u2717';
+      else if (status === 'running') icon.textContent = '...';
+
+      if (count) {
+        document.getElementById('step' + stepNum + '-count').textContent = count;
+      }
+    }
+
+    function parseDate(dateValue) {
+      if (!dateValue) return null;
+      if (dateValue.toDate) return dateValue.toDate().toISOString();
+      if (dateValue.seconds) return new Date(dateValue.seconds * 1000).toISOString();
+      if (typeof dateValue === 'string') return new Date(dateValue).toISOString();
+      if (dateValue instanceof Date) return dateValue.toISOString();
+      return null;
+    }
+
+    function startMigration() {
+      var btn = document.getElementById('startBtn');
+      btn.disabled = true;
+      btn.textContent = 'Migration in progress...';
+
+      runMigration().catch(function(error) {
+        log('\nERROR: ' + error.message);
+        btn.textContent = 'Migration Failed - See Log';
+        btn.style.background = '#ef4444';
+        btn.disabled = false;
+      });
+    }
+
+    async function runMigration() {
+      var btn = document.getElementById('startBtn');
+
+      // Step 1: Connect to Firebase
+      setStep(1, 'running');
+      log('Connecting to Firebase...');
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      setStep(1, 'success');
+      log('Connected to Firebase');
+
+      // Step 2: Read chores
+      setStep(2, 'running');
+      log('Reading chores...');
+      var choresDoc = await db.collection('familyChores').doc('choresData').get();
+      chores = choresDoc.exists ? (choresDoc.data().chores || []) : [];
+      setStep(2, 'success', chores.length + ' found');
+      log('Found ' + chores.length + ' chores');
+
+      // Step 3: Read completion history
+      setStep(3, 'running');
+      log('Reading completion history...');
+      var historyDoc = await db.collection('familyChores').doc('completionHistory').get();
+      completionHistory = historyDoc.exists ? (historyDoc.data().history || []) : [];
+      setStep(3, 'success', completionHistory.length + ' found');
+      log('Found ' + completionHistory.length + ' completion records');
+
+      // Step 4: Read change log
+      setStep(4, 'running');
+      log('Reading change log...');
+      var changeLogDoc = await db.collection('familyChores').doc('changeLog').get();
+      changeLog = changeLogDoc.exists ? (changeLogDoc.data().log || []) : [];
+      setStep(4, 'success', changeLog.length + ' found');
+      log('Found ' + changeLog.length + ' change log entries');
+
+      // Step 5: Connect to Supabase
+      setStep(5, 'running');
+      log('Connecting to Supabase...');
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setStep(5, 'success');
+      log('Connected to Supabase');
+
+      // Step 6: Write chores
+      setStep(6, 'running');
+      log('Writing chores to Supabase...');
+      if (chores.length > 0) {
+        var transformedChores = chores.map(function(c) {
+          return {
+            id: c.id,
+            name: c.name,
+            frequency_days: c.frequency,
+            assigned_to: c.assignedTo,
+            last_completed: parseDate(c.lastCompleted),
+            completed_by: c.completedBy || null
+          };
+        });
+
+        var result = await supabaseClient.from('chores').upsert(transformedChores);
+        if (result.error) throw new Error('Chores: ' + result.error.message);
+      }
+      setStep(6, 'success', chores.length + ' written');
+      log('Wrote ' + chores.length + ' chores');
+
+      // Step 7: Write completion history
+      setStep(7, 'running');
+      log('Writing completion history...');
+      if (completionHistory.length > 0) {
+        var transformedHistory = completionHistory.map(function(h) {
+          return {
+            id: h.id,
+            chore_id: h.choreId,
+            chore_name: h.choreName,
+            completed_date: parseDate(h.completedDate),
+            completed_by: h.completedBy
+          };
+        });
+
+        var result2 = await supabaseClient.from('completion_history').upsert(transformedHistory);
+        if (result2.error) throw new Error('History: ' + result2.error.message);
+      }
+      setStep(7, 'success', completionHistory.length + ' written');
+      log('Wrote ' + completionHistory.length + ' completion records');
+
+      // Step 8: Write change log
+      setStep(8, 'running');
+      log('Writing change log...');
+      if (changeLog.length > 0) {
+        var transformedLog = changeLog.map(function(l) {
+          return {
+            id: l.id,
+            action: l.action,
+            chore_name: l.choreName,
+            person: l.person,
+            timestamp: parseDate(l.timestamp),
+            details: l.details || null
+          };
+        });
+
+        var result3 = await supabaseClient.from('change_log').upsert(transformedLog);
+        if (result3.error) throw new Error('Change log: ' + result3.error.message);
+      }
+      setStep(8, 'success', changeLog.length + ' written');
+      log('Wrote ' + changeLog.length + ' change log entries');
+
+      log('\n========================================');
+      log('MIGRATION COMPLETE!');
+      log('========================================');
+      log('Chores: ' + chores.length);
+      log('Completion History: ' + completionHistory.length);
+      log('Change Log: ' + changeLog.length);
+      log('\nYou can now check your Supabase dashboard');
+      log('to verify the data was transferred correctly.');
+
+      btn.textContent = 'Migration Complete!';
+      btn.style.background = '#22c55e';
+    }
+
+    // Wait for page to fully load, then enable button
+    window.onload = function() {
+      var btn = document.getElementById('startBtn');
+
+      // Check if libraries loaded
+      if (typeof firebase === 'undefined') {
+        btn.textContent = 'Error: Firebase failed to load';
+        btn.style.background = '#ef4444';
+        return;
+      }
+
+      if (typeof window.supabase === 'undefined') {
+        btn.textContent = 'Error: Supabase failed to load';
+        btn.style.background = '#ef4444';
+        return;
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Start Migration';
+      btn.addEventListener('click', startMigration);
+    };
+  </script>
+</body>
+</html>
