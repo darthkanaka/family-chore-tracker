@@ -1180,7 +1180,7 @@
                             type="date"
                             value={confirmationEditDate}
                             onChange={(e) => setConfirmationEditDate(e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-brand-400 rounded-lg focus:outline-none focus:border-brand-500"
+                            className="w-full px-2 py-1 text-base border border-brand-400 rounded-lg focus:outline-none focus:border-brand-500"
                             autoFocus
                           />
                           <div className="flex gap-2">
@@ -1320,7 +1320,7 @@
                           value={newChoreName}
                           onChange={(e) => setNewChoreName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && addNewChore()}
-                          className="w-full px-3 py-2 text-sm border border-brand-200 rounded focus:outline-none focus:border-brand-400"
+                          className="w-full px-3 py-2 text-base border border-brand-200 rounded focus:outline-none focus:border-brand-400"
                           placeholder="Chore name"
                         />
                         <div className="grid grid-cols-2 gap-2">
@@ -1328,7 +1328,7 @@
                             type="number"
                             value={newChoreFrequency}
                             onChange={(e) => setNewChoreFrequency(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-brand-200 rounded focus:outline-none focus:border-brand-400"
+                            className="w-full px-3 py-2 text-base border border-brand-200 rounded focus:outline-none focus:border-brand-400"
                             placeholder="Days"
                             min="1"
                             max="365"
@@ -1336,7 +1336,7 @@
                           <select
                             value={newChoreAssignedTo}
                             onChange={(e) => setNewChoreAssignedTo(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-brand-200 rounded focus:outline-none focus:border-brand-400"
+                            className="w-full px-3 py-2 text-base border border-brand-200 rounded focus:outline-none focus:border-brand-400"
                           >
                             <option value="Kawika">Kawika</option>
                             <option value="Jordyn">Jordyn</option>
@@ -1366,7 +1366,7 @@
                         type="text"
                         value={choreSearchFilter}
                         onChange={(e) => setChoreSearchFilter(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-brand-200 rounded focus:outline-none focus:border-brand-400 mb-3"
+                        className="w-full px-3 py-2 text-base border border-brand-200 rounded focus:outline-none focus:border-brand-400 mb-3"
                         placeholder="Search chores..."
                       />
                       <div className="space-y-2">
@@ -1391,7 +1391,7 @@
                                       cancelEditChoreName();
                                     }
                                   }}
-                                  className="w-full px-3 py-2 text-sm border border-brand-400 rounded-lg focus:outline-none focus:border-brand-500"
+                                  className="w-full px-3 py-2 text-base border border-brand-400 rounded-lg focus:outline-none focus:border-brand-500"
                                   autoFocus
                                 />
                                 <div className="flex gap-2">
@@ -1424,7 +1424,7 @@
                                         cancelEditFrequency();
                                       }
                                     }}
-                                    className="w-16 px-2 py-1 text-sm border border-brand-400 rounded-lg text-center focus:outline-none focus:border-brand-500"
+                                    className="w-16 px-2 py-1 text-base border border-brand-400 rounded-lg text-center focus:outline-none focus:border-brand-500"
                                     min="1"
                                     max="365"
                                     autoFocus
@@ -1453,7 +1453,7 @@
                                   <select
                                     value={newAssignedTo}
                                     onChange={(e) => setNewAssignedTo(e.target.value)}
-                                    className="px-3 py-1 text-sm border border-brand-400 rounded-lg focus:outline-none focus:border-brand-500"
+                                    className="px-3 py-1 text-base border border-brand-400 rounded-lg focus:outline-none focus:border-brand-500"
                                     autoFocus
                                   >
                                     <option value="Kawika">Kawika</option>
@@ -1993,7 +1993,7 @@
                                             type="date"
                                             value={editingCompletedDate || formatDateToInput(new Date(chore.completedDate))}
                                             onChange={(e) => setEditingCompletedDate(e.target.value)}
-                                            className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:border-brand-400"
+                                            className="w-full px-3 py-2 text-base border border-brand-200 rounded-lg focus:outline-none focus:border-brand-400"
                                           />
                                         </div>
                                         <div>
@@ -2003,7 +2003,7 @@
                                           <select
                                             value={editingCompletedBy || chore.completedBy}
                                             onChange={(e) => setEditingCompletedBy(e.target.value)}
-                                            className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:border-brand-400"
+                                            className="w-full px-3 py-2 text-base border border-brand-200 rounded-lg focus:outline-none focus:border-brand-400"
                                           >
                                             <option value="Kawika">Kawika</option>
                                             <option value="Jordyn">Jordyn</option>
@@ -2110,7 +2110,7 @@
                                             type="date"
                                             value={editingUpcomingDate || formatDateToInput(chore.nextDue)}
                                             onChange={(e) => setEditingUpcomingDate(e.target.value)}
-                                            className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:border-orange-400"
+                                            className="w-full px-3 py-2 text-base border border-brand-200 rounded-lg focus:outline-none focus:border-orange-400"
                                           />
                                         </div>
                                         <button
