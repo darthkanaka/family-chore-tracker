@@ -314,6 +314,7 @@
 
       // Manage chores modal state
       const [showManageChores, setShowManageChores] = useState(false);
+      const [choreSearchFilter, setChoreSearchFilter] = useState('');
       const [newChoreName, setNewChoreName] = useState('');
       const [newChoreFrequency, setNewChoreFrequency] = useState('7');
       const [newChoreAssignedTo, setNewChoreAssignedTo] = useState('Kawika');
@@ -1292,7 +1293,7 @@
               <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
                 <div className="bg-white rounded-lg sm:rounded-lg shadow-lg max-w-2xl w-full m-2 sm:m-4 max-h-[90vh] flex flex-col relative">
                   <button
-                    onClick={() => setShowManageChores(false)}
+                    onClick={() => { setShowManageChores(false); setChoreSearchFilter(''); }}
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition z-10"
                   >
                     <X size={24} />
@@ -1352,11 +1353,24 @@
 
                     {/* EXISTING CHORES */}
                     <div className="mb-4">
-                      <h3 className="font-semibold text-gray-800 mb-2 text-sm">
-                        Existing Chores
-                      </h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-gray-800 text-sm">
+                          Existing Chores
+                        </h3>
+                        <span className="text-xs text-gray-500">{chores.length} total</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={choreSearchFilter}
+                        onChange={(e) => setChoreSearchFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-brand-200 rounded focus:outline-none focus:border-brand-400 mb-2"
+                        placeholder="Search chores..."
+                      />
                       <div className="space-y-2">
-                        {chores.map((chore) => (
+                        {chores.filter(chore =>
+                          chore.name.toLowerCase().includes(choreSearchFilter.toLowerCase()) ||
+                          chore.assignedTo.toLowerCase().includes(choreSearchFilter.toLowerCase())
+                        ).map((chore) => (
                           <div
                             key={chore.id}
                             className="p-2.5 bg-brand-50 rounded-lg border border-brand-200"
@@ -1504,7 +1518,7 @@
 
                   <div className="p-3 sm:p-5 pt-2 border-t border-brand-200 flex-shrink-0">
                     <button
-                      onClick={() => setShowManageChores(false)}
+                      onClick={() => { setShowManageChores(false); setChoreSearchFilter(''); }}
                       className="w-full bg-brand-100 text-gray-700 py-2.5 rounded font-medium hover:bg-gray-300 transition"
                     >
                       Done
