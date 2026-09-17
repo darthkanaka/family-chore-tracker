@@ -306,17 +306,24 @@
       const [editingFrequency, setEditingFrequency] = useState(null);
       const [newFrequency, setNewFrequency] = useState('');
 
+      // Edit default duration state
+      const [editingDuration, setEditingDuration] = useState(null);
+      const [newDuration, setNewDuration] = useState('');
+
       // Confirmation modal state
       const [showConfirmation, setShowConfirmation] = useState(false);
       const [confirmationData, setConfirmationData] = useState(null);
       const [editingConfirmationDate, setEditingConfirmationDate] = useState(false);
       const [confirmationEditDate, setConfirmationEditDate] = useState('');
+      const [editingConfirmationDuration, setEditingConfirmationDuration] = useState(false);
+      const [confirmationEditDuration, setConfirmationEditDuration] = useState('');
 
       // Manage chores modal state
       const [showManageChores, setShowManageChores] = useState(false);
       const [choreSearchFilter, setChoreSearchFilter] = useState('');
       const [newChoreName, setNewChoreName] = useState('');
       const [newChoreFrequency, setNewChoreFrequency] = useState('7');
+      const [newChoreDuration, setNewChoreDuration] = useState('');
       const [newChoreAssignedTo, setNewChoreAssignedTo] = useState('Kawika');
       const [editingChoreName, setEditingChoreName] = useState(null);
       const [editedChoreName, setEditedChoreName] = useState('');
@@ -365,7 +372,8 @@
                 frequency: chore.frequency_days,
                 assignedTo: chore.assigned_to,
                 lastCompleted: new Date(chore.last_completed),
-                completedBy: chore.completed_by
+                completedBy: chore.completed_by,
+                defaultDuration: chore.default_duration_minutes
               }));
               setChores(parsedChores);
             }
@@ -383,7 +391,8 @@
                 choreId: h.chore_id,
                 choreName: h.chore_name,
                 completedDate: new Date(h.completed_date),
-                completedBy: h.completed_by
+                completedBy: h.completed_by,
+                durationMinutes: h.duration_minutes
               }));
               setCompletionHistory(parsedHistory);
             }
@@ -430,7 +439,9 @@
                 frequency_days: chore.frequency,
                 assigned_to: chore.assignedTo,
                 last_completed: chore.lastCompleted.toISOString(),
-                completed_by: chore.completedBy
+                completed_by: chore.completedBy,
+                default_duration_minutes:
+                  chore.defaultDuration === undefined ? null : chore.defaultDuration
               }));
 
               const { error } = await supabase
@@ -457,7 +468,9 @@
                 chore_id: h.choreId,
                 chore_name: h.choreName,
                 completed_date: h.completedDate.toISOString(),
-                completed_by: h.completedBy
+                completed_by: h.completedBy,
+                duration_minutes:
+                  h.durationMinutes === undefined ? null : h.durationMinutes
               }));
 
               const { error } = await supabase
@@ -538,6 +551,23 @@
       };
 
       // --------------------------------------------------------------------------
+      // DURATION FORMATTING
+      // --------------------------------------------------------------------------
+
+      // Turns a minute count into something readable: 45 min, 1 hr, 1 hr 30 min.
+      // Returns null when no duration has been set, so callers can show a dash.
+      const formatDuration = (minutes) => {
+        if (minutes === null || minutes === undefined || minutes === '') return null;
+        const total = parseInt(minutes);
+        if (isNaN(total) || total <= 0) return null;
+        const hours = Math.floor(total / 60);
+        const mins = total % 60;
+        if (hours === 0) return `${mins} min`;
+        if (mins === 0) return `${hours} hr`;
+        return `${hours} hr ${mins} min`;
+      };
+
+      // --------------------------------------------------------------------------
       // CHORE CALCULATIONS
       // --------------------------------------------------------------------------
 
@@ -600,12 +630,18 @@
           )
         );
 
+        // Start from the chore's default duration. The confirmation modal can
+        // override it before this gets written out.
+        const startingDuration =
+          completedChore.defaultDuration === undefined ? null : completedChore.defaultDuration;
+
         const historyEntry = {
           id: Date.now(),
           choreId,
           choreName: completedChore.name,
           completedDate: today,
-          completedBy
+          completedBy,
+          durationMinutes: startingDuration
         };
         setCompletionHistory(prev => [...prev, historyEntry]);
 
@@ -632,7 +668,8 @@
           completedDate: today,
           completedBy: completedBy,
           nextDue: nextDue,
-          choreId: choreId
+          choreId: choreId,
+          durationMinutes: startingDuration
         });
 
         setShowConfirmation(true);
@@ -690,7 +727,10 @@
             frequency: parseInt(newChoreFrequency),
             assignedTo: newChoreAssignedTo,
             lastCompleted: getHawaiiDate(),
-            completedBy: newChoreAssignedTo
+            completedBy: newChoreAssignedTo,
+            defaultDuration: newChoreDuration.trim()
+              ? parseInt(newChoreDuration)
+              : null
           };
 
           setChores(prev => [...prev, newChore]);
@@ -708,6 +748,7 @@
 
           setNewChoreName('');
           setNewChoreFrequency('7');
+          setNewChoreDuration('');
           setNewChoreAssignedTo('Kawika');
         }
       };
@@ -913,6 +954,54 @@
       const cancelEditFrequency = () => {
         setEditingFrequency(null);
         setNewFrequency('');
+      };
+
+      const startEditDuration = (chore) => {
+        setEditingDuration(chore.id);
+        setNewDuration(
+          chore.defaultDuration === null || chore.defaultDuration === undefined
+            ? ''
+            : chore.defaultDuration.toString()
+        );
+      };
+
+      const cancelEditDuration = () => {
+        setEditingDuration(null);
+        setNewDuration('');
+      };
+
+      // An empty box clears the default back to "not set" rather than saving a 0.
+      const saveDuration = (choreId) => {
+        const trimmed = newDuration.trim();
+        const mins = trimmed === '' ? null : parseInt(trimmed);
+
+        if (mins !== null && (isNaN(mins) || mins <= 0 || mins > 1440)) return;
+
+        const chore = chores.find(c => c.id === choreId);
+        const oldDuration = chore.defaultDuration;
+
+        setChores(prevChores =>
+          prevChores.map(c =>
+            c.id === choreId ? { ...c, defaultDuration: mins } : c
+          )
+        );
+
+        const was = formatDuration(oldDuration) || 'not set';
+        const now = formatDuration(mins) || 'not set';
+
+        setChangeLog(prev => [
+          {
+            id: Date.now(),
+            action: 'edited',
+            choreName: chore.name,
+            person: 'System',
+            timestamp: getHawaiiDate(),
+            details: `Updated typical time from ${was} to ${now}`
+          },
+          ...prev
+        ]);
+
+        cancelEditDuration();
       };
 
       const toggleChoreExpand = (choreId) => {
@@ -1227,6 +1316,69 @@
                     </div>
                   </div>
 
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Time it took</div>
+                    {editingConfirmationDuration ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={confirmationEditDuration}
+                            onChange={(e) => setConfirmationEditDuration(e.target.value)}
+                            className="w-24 px-2 py-1 text-base border border-brand-400 rounded-lg focus:outline-none focus:border-brand-500"
+                            placeholder="Minutes"
+                            min="1"
+                            max="1440"
+                            autoFocus
+                          />
+                          <span className="text-gray-700 text-sm">minutes</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingConfirmationDuration(false);
+                              setConfirmationEditDuration('');
+                            }}
+                            className="flex-1 bg-gray-300 text-gray-700 py-1 rounded-lg text-xs font-medium hover:bg-gray-400 transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => {
+                              const trimmed = confirmationEditDuration.trim();
+                              const mins = trimmed === '' ? null : parseInt(trimmed);
+                              if (mins !== null && (isNaN(mins) || mins <= 0 || mins > 1440)) return;
+                              setConfirmationData(prev => ({
+                                ...prev,
+                                durationMinutes: mins
+                              }));
+                              setEditingConfirmationDuration(false);
+                            }}
+                            className="flex-1 bg-brand-600 text-white py-1 rounded-lg text-xs font-medium hover:bg-brand-700 transition"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => {
+                          setEditingConfirmationDuration(true);
+                          setConfirmationEditDuration(
+                            confirmationData.durationMinutes === null ||
+                            confirmationData.durationMinutes === undefined
+                              ? ''
+                              : confirmationData.durationMinutes.toString()
+                          );
+                        }}
+                        className="font-medium text-gray-800 cursor-pointer hover:text-brand-600 transition flex items-center gap-2"
+                      >
+                        {formatDuration(confirmationData.durationMinutes) || 'Add time'}
+                        <Edit2 className="w-4 h-4 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+
                   <div className="pt-4 border-t border-brand-200">
                     <div className="text-sm text-gray-500 mb-1">Next due date</div>
                     <div className="text-lg font-semibold text-brand-600">
@@ -1238,6 +1390,10 @@
                 <button
                   onClick={() => {
                     const finalDate = confirmationData.completedDate;
+                    const finalDuration =
+                      confirmationData.durationMinutes === undefined
+                        ? null
+                        : confirmationData.durationMinutes;
                     setChores(prevChores =>
                       prevChores.map(chore =>
                         chore.id === confirmationData.choreId
@@ -1249,13 +1405,15 @@
                       prev.map(h =>
                         h.choreId === confirmationData.choreId &&
                         h.id === lastCompletedChore?.historyEntryId
-                          ? { ...h, completedDate: finalDate }
+                          ? { ...h, completedDate: finalDate, durationMinutes: finalDuration }
                           : h
                       )
                     );
                     setShowConfirmation(false);
                     setEditingConfirmationDate(false);
                     setConfirmationEditDate('');
+                    setEditingConfirmationDuration(false);
+                    setConfirmationEditDuration('');
                   }}
                   className="w-full mt-4 bg-brand-600 text-white py-2.5 rounded font-medium hover:bg-brand-700 transition"
                 >
@@ -1304,7 +1462,7 @@
                       Manage Chores
                     </h2>
                     <p className="text-sm text-gray-600">
-                      Add new chores, edit names, and adjust frequencies
+                      Add new chores, edit names, frequencies, and typical times
                     </p>
                   </div>
 
@@ -1323,7 +1481,7 @@
                           className="w-full px-3 py-2 text-base border border-brand-200 rounded focus:outline-none focus:border-brand-400"
                           placeholder="Chore name"
                         />
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <input
                             type="number"
                             value={newChoreFrequency}
@@ -1332,6 +1490,15 @@
                             placeholder="Days"
                             min="1"
                             max="365"
+                          />
+                          <input
+                            type="number"
+                            value={newChoreDuration}
+                            onChange={(e) => setNewChoreDuration(e.target.value)}
+                            className="w-full px-3 py-2 text-base border border-brand-200 rounded focus:outline-none focus:border-brand-400"
+                            placeholder="Minutes"
+                            min="1"
+                            max="1440"
                           />
                           <select
                             value={newChoreAssignedTo}
@@ -1446,6 +1613,47 @@
                                   </button>
                                 </div>
                               </div>
+                            ) : editingDuration === chore.id ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="text-gray-700">{chore.name} - Usually takes</span>
+                                  <input
+                                    type="number"
+                                    value={newDuration}
+                                    onChange={(e) => setNewDuration(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        saveDuration(chore.id);
+                                      } else if (e.key === 'Escape') {
+                                        cancelEditDuration();
+                                      }
+                                    }}
+                                    className="w-20 px-2 py-1 text-base border border-brand-400 rounded-lg text-center focus:outline-none focus:border-brand-500"
+                                    placeholder="--"
+                                    min="1"
+                                    max="1440"
+                                    autoFocus
+                                  />
+                                  <span className="text-gray-700">min</span>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  Leave blank to clear it
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={cancelEditDuration}
+                                    className="flex-1 bg-gray-300 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-400 transition text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => saveDuration(chore.id)}
+                                    className="flex-1 bg-brand-600 text-white py-1.5 rounded-lg font-medium hover:bg-brand-700 transition text-sm"
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
                             ) : editingAssignedTo === chore.id ? (
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-sm">
@@ -1483,6 +1691,9 @@
                                   </div>
                                   <div className="text-xs text-gray-500">
                                     Every {chore.frequency} days · {chore.assignedTo}
+                                    {formatDuration(chore.defaultDuration)
+                                      ? ` · ~${formatDuration(chore.defaultDuration)}`
+                                      : ''}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -1497,6 +1708,12 @@
                                     className="px-2 py-1 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded text-xs transition"
                                   >
                                     Freq
+                                  </button>
+                                  <button
+                                    onClick={() => startEditDuration(chore)}
+                                    className="px-2 py-1 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded text-xs transition"
+                                  >
+                                    Time
                                   </button>
                                   <button
                                     onClick={() => startEditAssignedTo(chore)}
@@ -1703,7 +1920,12 @@
                       <div key={completion.id} className="flex justify-between items-center py-2 gap-3">
                         <div className="flex-1">
                           <div className="font-medium text-gray-800">{completion.choreName}</div>
-                          <div className="text-sm text-gray-500">{completion.completedBy}</div>
+                          <div className="text-sm text-gray-500">
+                            {completion.completedBy}
+                            {formatDuration(completion.durationMinutes)
+                              ? ` · ${formatDuration(completion.durationMinutes)}`
+                              : ''}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-gray-400">
